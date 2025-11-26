@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Menu, X, Lock } from 'lucide-react';
+import { Menu, X, Lock, Globe } from 'lucide-react';
 import { BrandLogo } from './BrandLogo';
 import { useContent } from '../contexts/ContentContext';
 
@@ -11,7 +11,7 @@ interface NavbarProps {
 }
 
 export const Navbar: React.FC<NavbarProps> = ({ activeSection, scrollToSection, onOpenAdmin }) => {
-  const { content, isAdmin, openLeadForm } = useContent();
+  const { content, isAdmin, openLeadForm, toggleLanguage, language } = useContent();
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
@@ -22,12 +22,12 @@ export const Navbar: React.FC<NavbarProps> = ({ activeSection, scrollToSection, 
   }, []);
 
   const allNavItems = [
-    { id: 'model', label: "模式", isVisible: content.model.isVisible },
-    { id: 'showcase', label: "案例", isVisible: content.showcase.isVisible },
-    { id: 'financials', label: "测算", isVisible: content.financials.isVisible },
-    { id: 'menu', label: "产品", isVisible: content.menuSection.isVisible },
-    { id: 'comparison', label: "配置", isVisible: content.comparison.isVisible },
-    { id: 'faq', label: "问答", isVisible: content.faq.isVisible },
+    { id: 'model', label: language === 'zh' ? "模式" : "Model", isVisible: content.model.isVisible },
+    { id: 'showcase', label: language === 'zh' ? "案例" : "Cases", isVisible: content.showcase.isVisible },
+    { id: 'financials', label: language === 'zh' ? "测算" : "Profit", isVisible: content.financials.isVisible },
+    { id: 'menu', label: language === 'zh' ? "产品" : "Menu", isVisible: content.menuSection.isVisible },
+    { id: 'comparison', label: language === 'zh' ? "配置" : "Specs", isVisible: content.comparison.isVisible },
+    { id: 'faq', label: language === 'zh' ? "问答" : "FAQ", isVisible: content.faq.isVisible },
   ];
 
   const navItems = allNavItems.filter(item => item.isVisible || isAdmin);
@@ -62,11 +62,19 @@ export const Navbar: React.FC<NavbarProps> = ({ activeSection, scrollToSection, 
           </div>
 
           <div className="hidden md:flex items-center gap-3">
+             <button
+              onClick={toggleLanguage}
+              className="flex items-center gap-1 text-xs font-bold px-3 py-2 rounded-full hover:bg-white/50 transition-colors uppercase"
+            >
+              <Globe size={14} className="text-gray-500"/>
+              {language === 'zh' ? 'EN' : '中'}
+            </button>
+
             <button
               onClick={openLeadForm}
               className="bg-brand-green-medium text-white px-5 py-2 rounded-full font-bold text-xs hover:bg-brand-green-dark transition-all shadow-lg shadow-brand-green-medium/20 active:scale-95 transform"
             >
-              立即加盟
+              {language === 'zh' ? '立即加盟' : 'Join Now'}
             </button>
             
             <button 
@@ -78,7 +86,10 @@ export const Navbar: React.FC<NavbarProps> = ({ activeSection, scrollToSection, 
           </div>
 
           {/* Mobile Menu Toggle */}
-          <div className="md:hidden flex items-center gap-4">
+          <div className="md:hidden flex items-center gap-2">
+            <button onClick={toggleLanguage} className="text-brand-dark px-2 font-bold text-xs uppercase">
+                 {language === 'zh' ? 'EN' : '中'}
+            </button>
             <button onClick={() => setIsOpen(!isOpen)} className="text-brand-dark p-2 bg-white rounded-full shadow-sm hover:bg-gray-50 transition active:scale-95">
               {isOpen ? <X size={20} /> : <Menu size={20} />}
             </button>
@@ -109,7 +120,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeSection, scrollToSection, 
               }}
               className="mt-8 bg-brand-green-medium text-white px-8 py-3 rounded-full font-bold text-lg shadow-xl"
             >
-              立即加盟
+              {language === 'zh' ? '立即加盟' : 'Join Now'}
             </button>
              <button onClick={() => setIsOpen(false)} className="absolute top-6 right-6 p-2 rounded-full bg-gray-100">
                 <X size={24} />

@@ -1,11 +1,10 @@
-
 import React, { useState } from 'react';
 import { ShieldCheck, CheckCircle2, AlertTriangle, ArrowRight, Zap, Gift, Scale } from 'lucide-react';
 import { useContent } from '../contexts/ContentContext';
 import { EditableText } from './ui/Editable';
 
 export const ProcessSection = () => {
-  const { content, updateSection, updateProcessPhase, updateProcessPhaseDetail } = useContent();
+  const { content, updateSection, updateProcessPhase, updateProcessPhaseDetail, language } = useContent();
   const { process } = content;
   const [activeTab, setActiveTab] = useState(0);
 
@@ -19,14 +18,14 @@ export const ProcessSection = () => {
         <div className="mb-20 max-w-3xl">
            <div className="w-12 h-1 bg-brand-green-dark mb-8"></div>
            <span className="text-brand-green-dark font-bold tracking-widest text-xs uppercase mb-4 block">
-              <EditableText value={process.tagline} onSave={(val) => updateSection('process', 'tagline', val)} />
+              <EditableText value={process.tagline[language]} onSave={(val) => updateSection('process', 'tagline', val)} />
            </span>
           <h2 className="text-4xl md:text-5xl font-black text-brand-dark mb-8 leading-tight">
-              <EditableText value={process.title} onSave={(val) => updateSection('process', 'title', val)} multiline />
+              <EditableText value={process.title[language]} onSave={(val) => updateSection('process', 'title', val)} multiline />
           </h2>
           {/* Enhanced Contrast */}
           <div className="text-brand-green-dark text-lg leading-relaxed font-normal opacity-90">
-              <EditableText value={process.description} onSave={(val) => updateSection('process', 'description', val)} multiline />
+              <EditableText value={process.description[language]} onSave={(val) => updateSection('process', 'description', val)} multiline />
           </div>
         </div>
 
@@ -48,15 +47,15 @@ export const ProcessSection = () => {
                     >
                         <div className="flex items-center justify-between mb-3">
                             <span className={`text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded ${isActive ? 'bg-brand-green-dark text-white' : 'bg-brand-green-dark/10 text-brand-green-dark'}`}>
-                                <EditableText value={phase.badge} onSave={(val) => updateProcessPhase(idx, 'badge', val)} />
+                                <EditableText value={phase.badge[language]} onSave={(val) => updateProcessPhase(idx, 'badge', val)} />
                             </span>
                             <Icon size={20} className={isActive ? 'text-brand-green-dark' : 'text-gray-500'}/>
                         </div>
                         <h3 className={`text-xl font-bold mb-1 ${isActive ? 'text-brand-dark' : 'text-gray-600'}`}>
-                            <EditableText value={phase.title} onSave={(val) => updateProcessPhase(idx, 'title', val)} />
+                            <EditableText value={phase.title[language]} onSave={(val) => updateProcessPhase(idx, 'title', val)} />
                         </h3>
                         <p className="text-xs text-gray-500 font-medium">
-                             <EditableText value={phase.subtitle} onSave={(val) => updateProcessPhase(idx, 'subtitle', val)} />
+                             <EditableText value={phase.subtitle[language]} onSave={(val) => updateProcessPhase(idx, 'subtitle', val)} />
                         </p>
                     </button>
                 )
@@ -76,7 +75,7 @@ export const ProcessSection = () => {
                                  <span className="w-8 h-8 rounded-full bg-brand-green-pale/50 flex items-center justify-center text-brand-green-dark">
                                      <Gift size={16}/>
                                  </span>
-                                 <EditableText value={phase.benefitsTitle} onSave={(val) => updateProcessPhase(idx, 'benefitsTitle', val)} />
+                                 <EditableText value={phase.benefitsTitle[language]} onSave={(val) => updateProcessPhase(idx, 'benefitsTitle', val)} />
                              </h4>
                              <ul className="space-y-6">
                                  {phase.benefits.map((benefit, bIdx) => (
@@ -84,7 +83,7 @@ export const ProcessSection = () => {
                                          <CheckCircle2 size={20} className="text-brand-green-medium mt-1 shrink-0 group-hover:scale-110 transition-transform" />
                                          {/* Enhanced Text Color */}
                                          <span className="text-gray-800 leading-relaxed font-bold">
-                                             <EditableText value={benefit} onSave={(val) => updateProcessPhaseDetail(idx, 'benefits', bIdx, val)} />
+                                             <EditableText value={benefit[language]} onSave={(val) => updateProcessPhaseDetail(idx, 'benefits', bIdx, val)} />
                                          </span>
                                      </li>
                                  ))}
@@ -100,14 +99,14 @@ export const ProcessSection = () => {
                                  <span className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-700">
                                      {idx === 2 ? <AlertTriangle size={16}/> : <Scale size={16}/>}
                                  </span>
-                                 <EditableText value={phase.obligationsTitle} onSave={(val) => updateProcessPhase(idx, 'obligationsTitle', val)} />
+                                 <EditableText value={phase.obligationsTitle[language]} onSave={(val) => updateProcessPhase(idx, 'obligationsTitle', val)} />
                              </h4>
                              <ul className="space-y-4">
                                  {phase.obligations.map((ob, oIdx) => (
                                      <li key={oIdx} className="flex items-start gap-3 text-sm text-gray-700 font-medium">
                                          <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-gray-500 shrink-0"></span>
                                          <span className="leading-relaxed">
-                                             <EditableText value={ob} onSave={(val) => updateProcessPhaseDetail(idx, 'obligations', oIdx, val)} />
+                                             <EditableText value={ob[language]} onSave={(val) => updateProcessPhaseDetail(idx, 'obligations', oIdx, val)} />
                                          </span>
                                      </li>
                                  ))}

@@ -1,11 +1,10 @@
-
 import React, { useState } from 'react';
 import { useContent } from '../contexts/ContentContext';
 import { EditableText } from './ui/Editable';
 import { Plus, Minus, HelpCircle } from 'lucide-react';
 
 export const FAQSection = () => {
-  const { content, updateSection, updateSectionItem } = useContent();
+  const { content, updateSection, updateSectionItem, language } = useContent();
   const { faq } = content;
   const [openIndex, setOpenIndex] = useState<number | null>(0);
 
@@ -19,13 +18,13 @@ export const FAQSection = () => {
         
         <div className="text-center mb-16">
             <span className="text-brand-green-medium font-bold tracking-widest text-xs uppercase mb-4 block">
-                <EditableText value={faq.tagline} onSave={(val) => updateSection('faq', 'tagline', val)} />
+                <EditableText value={faq.tagline[language]} onSave={(val) => updateSection('faq', 'tagline', val)} />
             </span>
             <h2 className="text-3xl md:text-4xl font-black text-brand-dark mb-4 leading-tight">
-                <EditableText value={faq.title} onSave={(val) => updateSection('faq', 'title', val)} multiline />
+                <EditableText value={faq.title[language]} onSave={(val) => updateSection('faq', 'title', val)} multiline />
             </h2>
             <p className="text-brand-green-medium/80 font-light">
-                <EditableText value={faq.description} onSave={(val) => updateSection('faq', 'description', val)} multiline />
+                <EditableText value={faq.description[language]} onSave={(val) => updateSection('faq', 'description', val)} multiline />
             </p>
         </div>
 
@@ -44,7 +43,7 @@ export const FAQSection = () => {
                         >
                             <span className={`font-bold text-lg flex gap-4 ${isOpen ? 'text-brand-green-dark' : 'text-brand-dark'}`}>
                                 <span className="text-brand-green-medium/30 font-serif italic">Q{i+1}.</span>
-                                <EditableText value={item.question} onSave={(val) => updateSectionItem('faq', i, 'question', val)} />
+                                <EditableText value={item.question[language]} onSave={(val) => updateSectionItem('faq', i, 'question', val)} />
                             </span>
                             <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors duration-300 ${isOpen ? 'bg-brand-green-dark text-white' : 'bg-brand-cream text-brand-green-dark'}`}>
                                 {isOpen ? <Minus size={16} /> : <Plus size={16} />}
@@ -55,7 +54,7 @@ export const FAQSection = () => {
                             className={`transition-all duration-300 ease-in-out overflow-hidden ${isOpen ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}
                         >
                             <div className="px-6 pb-6 pl-14 text-brand-green-medium leading-relaxed font-light">
-                                <EditableText value={item.answer} onSave={(val) => updateSectionItem('faq', i, 'answer', val)} multiline />
+                                <EditableText value={item.answer[language]} onSave={(val) => updateSectionItem('faq', i, 'answer', val)} multiline />
                             </div>
                         </div>
                     </div>

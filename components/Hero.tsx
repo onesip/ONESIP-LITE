@@ -10,7 +10,7 @@ interface HeroProps {
 }
 
 export const Hero: React.FC<HeroProps> = ({ scrollToSection }) => {
-  const { content, updateHero } = useContent();
+  const { content, updateHero, language } = useContent();
   const { hero } = content;
 
   return (
@@ -33,28 +33,28 @@ export const Hero: React.FC<HeroProps> = ({ scrollToSection }) => {
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-brand-green-medium"></span>
                 </span>
                <span className="text-xs font-bold tracking-[0.2em] uppercase text-gray-600">
-                  <EditableText value={hero.tagline} onSave={(val) => updateHero('tagline', val)} />
+                  <EditableText value={hero.tagline[language]} onSave={(val) => updateHero('tagline', val)} />
                </span>
             </div>
             
             {/* Mobile: text-5xl, Desktop: text-8xl */}
             <h1 className="text-5xl md:text-7xl lg:text-8xl font-black text-brand-dark leading-[1.1] md:leading-[0.95] tracking-tighter mb-8">
               <span className="block">
-                  <EditableText value={hero.titleLine1} onSave={(val) => updateHero('titleLine1', val)} tag="span"/>
+                  <EditableText value={hero.titleLine1[language]} onSave={(val) => updateHero('titleLine1', val)} tag="span"/>
               </span>
               <span className="block text-transparent bg-clip-text bg-gradient-to-br from-brand-dark to-gray-600">
-                  <EditableText value={hero.titleLine2} onSave={(val) => updateHero('titleLine2', val)} tag="span"/>
+                  <EditableText value={hero.titleLine2[language]} onSave={(val) => updateHero('titleLine2', val)} tag="span"/>
               </span>
             </h1>
             
             <div className="space-y-6 md:space-y-8 max-w-lg mx-auto lg:mx-0">
               <h2 className="text-xl md:text-2xl font-bold text-brand-dark tracking-tight">
-                 <EditableText value={hero.subtitle} onSave={(val) => updateHero('subtitle', val)} />
+                 <EditableText value={hero.subtitle[language]} onSave={(val) => updateHero('subtitle', val)} />
               </h2>
               {/* Increased contrast for description */}
               <div className="text-base md:text-lg text-gray-700 leading-relaxed font-normal">
                  <EditableText 
-                  value={hero.description} 
+                  value={hero.description[language]} 
                   onSave={(val) => updateHero('description', val)} 
                   multiline={true}
                 />
@@ -66,12 +66,12 @@ export const Hero: React.FC<HeroProps> = ({ scrollToSection }) => {
                 onClick={() => scrollToSection('financials')}
                 className="w-full sm:w-auto px-10 py-4 bg-brand-dark text-white rounded-full font-semibold text-sm hover:scale-105 transition-all duration-300 shadow-xl flex items-center justify-center gap-3 group"
               >
-                <EditableText value={hero.buttonText} onSave={(val) => updateHero('buttonText', val)} />
+                <EditableText value={hero.buttonText[language]} onSave={(val) => updateHero('buttonText', val)} />
                 <ArrowDown size={16} className="group-hover:translate-y-1 transition-transform" />
               </button>
               
               <div className="flex items-center px-6 py-4 rounded-full border border-gray-300 bg-white/50 backdrop-blur-sm text-sm font-bold text-gray-700">
-                 <EditableText value={hero.trustText} onSave={(val) => updateHero('trustText', val)} />
+                 <EditableText value={hero.trustText[language]} onSave={(val) => updateHero('trustText', val)} />
               </div>
             </div>
           </div>
@@ -111,17 +111,6 @@ export const Hero: React.FC<HeroProps> = ({ scrollToSection }) => {
                       </div>
                   </div>
               </div>
-            </div>
-            
-            {/* Minimalist Floating Elements - Hidden on small mobile to avoid clutter */}
-            <div className="absolute top-1/3 -right-4 lg:-right-4 bg-white p-4 rounded-2xl shadow-glass border border-gray-100 z-20 animate-float hidden sm:block">
-               <div className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Revenue</div>
-               <div className="text-3xl font-black text-brand-dark">+35%</div>
-            </div>
-
-             <div className="absolute bottom-24 -left-4 lg:-left-8 bg-brand-green-dark p-4 rounded-2xl shadow-2xl z-20 animate-float animation-delay-2000 hidden sm:block">
-               <div className="text-xs font-bold text-brand-green-light/60 uppercase tracking-wider mb-1">Efficiency</div>
-               <div className="text-3xl font-black text-white">10s<span className="text-sm font-normal text-white/60 ml-1">/cup</span></div>
             </div>
           </div>
 

@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { TrendingUp, Zap, Store } from 'lucide-react';
 import { useContent } from '../contexts/ContentContext';
@@ -36,7 +35,7 @@ const FeatureItem: React.FC<FeatureItemProps> = ({ icon: Icon, title, desc, inde
 );
 
 export const ModelSection = () => {
-  const { content, updateSection, updateSectionItem } = useContent();
+  const { content, updateSection, updateSectionItem, language } = useContent();
   const { model } = content;
   
   const icons = [TrendingUp, Zap, Store];
@@ -51,15 +50,15 @@ export const ModelSection = () => {
             <div className="flex items-center gap-3 mb-6">
                  <span className="h-px w-8 bg-brand-dark"></span>
                  <span className="text-xs font-bold tracking-widest uppercase text-brand-dark">
-                    <EditableText value={model.tagline} onSave={(val) => updateSection('model', 'tagline', val)} />
+                    <EditableText value={model.tagline[language]} onSave={(val) => updateSection('model', 'tagline', val)} />
                  </span>
             </div>
             <h2 className="text-4xl md:text-5xl font-black text-brand-dark leading-tight tracking-tight">
-                <EditableText value={model.title} onSave={(val) => updateSection('model', 'title', val)} multiline />
+                <EditableText value={model.title[language]} onSave={(val) => updateSection('model', 'title', val)} multiline />
             </h2>
           </div>
           <div className="text-lg text-gray-700 font-normal leading-relaxed md:pl-10 border-l-2 border-gray-100">
-             <EditableText value={model.description} onSave={(val) => updateSection('model', 'description', val)} multiline />
+             <EditableText value={model.description[language]} onSave={(val) => updateSection('model', 'description', val)} multiline />
           </div>
         </div>
 
@@ -70,8 +69,8 @@ export const ModelSection = () => {
               key={i}
               index={i}
               icon={icons[i] || TrendingUp}
-              title={item.title}
-              desc={item.desc}
+              title={item.title[language]}
+              desc={item.desc[language]}
               onSaveTitle={(val) => updateSectionItem('model', i, 'title', val)}
               onSaveDesc={(val) => updateSectionItem('model', i, 'desc', val)}
             />

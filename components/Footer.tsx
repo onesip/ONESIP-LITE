@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { BrandLogo } from './BrandLogo';
 import { Lock, Cloud, HardDrive, AlertCircle } from 'lucide-react';
@@ -6,7 +5,7 @@ import { useContent } from '../contexts/ContentContext';
 import { EditableText } from './ui/Editable';
 
 export const Footer = ({ onOpenAdmin }: { onOpenAdmin?: () => void }) => {
-  const { content, updateSection, dataSource } = useContent();
+  const { content, updateSection, dataSource, language } = useContent();
   const { footer } = content;
 
   return (
@@ -18,13 +17,13 @@ export const Footer = ({ onOpenAdmin }: { onOpenAdmin?: () => void }) => {
               <BrandLogo />
             </div>
             <div className="text-brand-green-medium text-lg font-light max-w-md leading-relaxed">
-              <EditableText value={footer.aboutText} onSave={(val) => updateSection('footer', 'aboutText', val)} multiline />
+              <EditableText value={footer.aboutText[language]} onSave={(val) => updateSection('footer', 'aboutText', val)} multiline />
             </div>
           </div>
           
           <div>
             <h4 className="text-brand-dark font-bold mb-6">
-                 <EditableText value={footer.contactTitle} onSave={(val) => updateSection('footer', 'contactTitle', val)} />
+                 <EditableText value={footer.contactTitle[language]} onSave={(val) => updateSection('footer', 'contactTitle', val)} />
             </h4>
             <ul className="space-y-4 text-brand-green-medium font-light">
               <li><EditableText value={footer.email} onSave={(val) => updateSection('footer', 'email', val)} /></li>
@@ -34,7 +33,7 @@ export const Footer = ({ onOpenAdmin }: { onOpenAdmin?: () => void }) => {
           
           <div>
             <h4 className="text-brand-dark font-bold mb-6">
-                <EditableText value={footer.resourceTitle} onSave={(val) => updateSection('footer', 'resourceTitle', val)} />
+                <EditableText value={footer.resourceTitle[language]} onSave={(val) => updateSection('footer', 'resourceTitle', val)} />
             </h4>
             <ul className="space-y-4 text-brand-green-medium font-light">
               {["招商手册", "设备参数表", "隐私政策"].map((link, i) => (

@@ -1,11 +1,11 @@
-
 import React from 'react';
 import { useContent } from '../contexts/ContentContext';
 import { EditableText, EditableImage } from './ui/Editable';
 import { MapPin, ArrowUpRight } from 'lucide-react';
+import { LocalizedText } from '../types';
 
 export const ShowcaseSection = () => {
-  const { content, updateSection, updateSectionItem } = useContent();
+  const { content, updateSection, updateSectionItem, language } = useContent();
   const { showcase } = content;
 
   return (
@@ -17,15 +17,15 @@ export const ShowcaseSection = () => {
           <div className="flex items-center gap-3 mb-6">
                  <span className="h-px w-8 bg-brand-dark"></span>
                  <span className="text-xs font-bold tracking-widest uppercase text-brand-dark">
-                    <EditableText value={showcase.tagline} onSave={(val) => updateSection('showcase', 'tagline', val)} />
+                    <EditableText value={showcase.tagline[language]} onSave={(val) => updateSection('showcase', 'tagline', val)} />
                  </span>
           </div>
           <div className="flex flex-col md:flex-row justify-between items-end gap-8">
              <h2 className="text-4xl md:text-5xl font-black text-brand-dark leading-tight tracking-tight max-w-2xl">
-                <EditableText value={showcase.title} onSave={(val) => updateSection('showcase', 'title', val)} multiline />
+                <EditableText value={showcase.title[language]} onSave={(val) => updateSection('showcase', 'title', val)} multiline />
             </h2>
             <div className="text-gray-500 max-w-sm leading-relaxed font-light text-sm">
-                 <EditableText value={showcase.description} onSave={(val) => updateSection('showcase', 'description', val)} multiline />
+                 <EditableText value={showcase.description[language]} onSave={(val) => updateSection('showcase', 'description', val)} multiline />
             </div>
           </div>
         </div>
@@ -38,7 +38,7 @@ export const ShowcaseSection = () => {
                     <div className="absolute inset-0 transition-transform duration-700 group-hover:scale-105">
                          <EditableImage 
                             src={item.image || ""} 
-                            alt={item.title} 
+                            alt={item.title[language]} 
                             onSave={(url) => updateSectionItem('showcase', i, 'image', url)}
                             className="w-full h-full object-cover"
                          />
@@ -51,26 +51,29 @@ export const ShowcaseSection = () => {
                     <div className="absolute top-6 left-6">
                         <div className="inline-flex items-center gap-1.5 bg-white/20 backdrop-blur-md px-3 py-1.5 rounded-full text-xs font-bold text-white border border-white/20">
                              <MapPin size={10} />
-                             <EditableText value={item.tag || "Location"} onSave={(val) => updateSectionItem('showcase', i, 'tag', val)} />
+                             <EditableText 
+                               value={item.tag?.[language] || "Location"} 
+                               onSave={(val) => updateSectionItem('showcase', i, 'tag', val)} 
+                             />
                         </div>
                     </div>
 
                     <div className="absolute bottom-0 left-0 w-full p-8 translate-y-2 group-hover:translate-y-0 transition-transform duration-500">
                         <div className="text-white mb-1 font-bold text-xl flex items-center justify-between">
-                             <EditableText value={item.title} onSave={(val) => updateSectionItem('showcase', i, 'title', val)} />
+                             <EditableText value={item.title[language]} onSave={(val) => updateSectionItem('showcase', i, 'title', val)} />
                              <ArrowUpRight size={20} className="opacity-0 group-hover:opacity-100 transition-opacity"/>
                         </div>
                         <div className="text-gray-300 text-xs leading-relaxed line-clamp-2 mb-4 group-hover:text-white">
-                             <EditableText value={item.desc} onSave={(val) => updateSectionItem('showcase', i, 'desc', val)} multiline />
+                             <EditableText value={item.desc[language]} onSave={(val) => updateSectionItem('showcase', i, 'desc', val)} multiline />
                         </div>
                         
                         {/* Stat Pill */}
                         <div className="inline-flex flex-col bg-brand-green-dark/90 backdrop-blur px-4 py-2 rounded-lg border border-white/10">
                              <span className="text-lg font-black text-white leading-none">
-                                <EditableText value={item.statValue} onSave={(val) => updateSectionItem('showcase', i, 'statValue', val)} />
+                                <EditableText value={item.statValue[language]} onSave={(val) => updateSectionItem('showcase', i, 'statValue', val)} />
                              </span>
                              <span className="text-[9px] text-brand-green-light uppercase tracking-wider">
-                                <EditableText value={item.statLabel} onSave={(val) => updateSectionItem('showcase', i, 'statLabel', val)} />
+                                <EditableText value={item.statLabel[language]} onSave={(val) => updateSectionItem('showcase', i, 'statLabel', val)} />
                              </span>
                         </div>
                     </div>

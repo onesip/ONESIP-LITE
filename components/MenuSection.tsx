@@ -1,11 +1,11 @@
-
 import React from 'react';
 import { useContent } from '../contexts/ContentContext';
 import { EditableText, EditableImage } from './ui/Editable';
 import { Plus, Trash2 } from 'lucide-react';
+import { LocalizedText } from '../types';
 
 export const MenuSection = () => {
-  const { content, updateMenuItem, addMenuItem, deleteMenuItem, isAdmin, updateSection } = useContent();
+  const { content, updateMenuItem, addMenuItem, deleteMenuItem, isAdmin, updateSection, language } = useContent();
   const { menu, menuSection } = content;
 
   return (
@@ -13,14 +13,14 @@ export const MenuSection = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-24">
           <span className="text-brand-green-medium font-bold tracking-widest text-xs uppercase mb-3 block">
-             <EditableText value={menuSection.tagline} onSave={(val) => updateSection('menuSection', 'tagline', val)} />
+             <EditableText value={menuSection.tagline[language]} onSave={(val) => updateSection('menuSection', 'tagline', val)} />
           </span>
           <h2 className="text-4xl md:text-5xl font-black text-brand-dark mb-6">
-             <EditableText value={menuSection.title} onSave={(val) => updateSection('menuSection', 'title', val)} />
+             <EditableText value={menuSection.title[language]} onSave={(val) => updateSection('menuSection', 'title', val)} />
           </h2>
           <div className="w-16 h-1 bg-brand-green-medium mx-auto rounded-full mb-6 opacity-30"></div>
           <div className="text-brand-green-medium/80 max-w-2xl mx-auto text-lg font-light leading-relaxed">
-             <EditableText value={menuSection.description} onSave={(val) => updateSection('menuSection', 'description', val)} multiline />
+             <EditableText value={menuSection.description[language]} onSave={(val) => updateSection('menuSection', 'description', val)} multiline />
           </div>
         </div>
         
@@ -42,21 +42,21 @@ export const MenuSection = () => {
               <div className="relative mb-6 rounded-2xl overflow-hidden aspect-[4/5] bg-[#F2F0E9]">
                  <EditableImage 
                    src={item.image} 
-                   alt={item.name} 
+                   alt={item.name[language]} 
                    className="w-full h-full"
                    onSave={(newUrl) => updateMenuItem(item.id, 'image', newUrl)}
                  />
                  
                  {/* Badge */}
                  <div className="absolute top-4 left-4 bg-white/90 backdrop-blur text-brand-dark text-[10px] font-black px-3 py-1.5 rounded-full uppercase tracking-widest shadow-sm">
-                    <EditableText value={item.tag} onSave={(val) => updateMenuItem(item.id, 'tag', val)} />
+                    <EditableText value={item.tag[language]} onSave={(val) => updateMenuItem(item.id, 'tag', val)} />
                  </div>
               </div>
 
               <div className="px-2 flex flex-col flex-grow">
                   <div className="flex justify-between items-baseline mb-1">
                     <h3 className="text-xl font-bold text-brand-dark group-hover:text-brand-green-dark transition-colors">
-                      <EditableText value={item.name} onSave={(val) => updateMenuItem(item.id, 'name', val)} />
+                      <EditableText value={item.name[language]} onSave={(val) => updateMenuItem(item.id, 'name', val)} />
                     </h3>
                     <span className="text-lg font-serif italic text-brand-dark">
                       <EditableText value={item.price} onSave={(val) => updateMenuItem(item.id, 'price', val)} />
@@ -64,11 +64,11 @@ export const MenuSection = () => {
                   </div>
                   
                   <div className="text-brand-green-light text-[10px] font-bold uppercase tracking-wider mb-3">
-                    <EditableText value={item.eng} onSave={(val) => updateMenuItem(item.id, 'eng', val)} />
+                    <EditableText value={(item.eng as unknown as LocalizedText)[language] || item.eng} onSave={(val) => updateMenuItem(item.id, 'eng', val)} />
                   </div>
                   
                   <div className="text-brand-green-medium/80 text-sm leading-relaxed mb-4 flex-grow line-clamp-3 font-light">
-                    <EditableText value={item.desc} onSave={(val) => updateMenuItem(item.id, 'desc', val)} multiline />
+                    <EditableText value={item.desc[language]} onSave={(val) => updateMenuItem(item.id, 'desc', val)} multiline />
                   </div>
 
                   <div className="flex flex-wrap gap-2 pt-4 border-t border-brand-green-dark/5 group-hover:border-transparent transition-colors">

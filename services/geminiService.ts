@@ -12,9 +12,25 @@ const getEnv = (key: string) => {
 
 const apiKey = getEnv('API_KEY');
 
+export const translateText = async (text: string): Promise<string> => {
+    if (!apiKey || !text) return text;
+    try {
+        const ai = new GoogleGenAI({ apiKey });
+        const prompt = `Translate the following UI text from Chinese to English. Keep it concise, professional, and suitable for a marketing website. Only return the translated text, no quotes or explanations.\n\nText: "${text}"`;
+        
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: prompt,
+        });
+        return response.text?.trim() || text;
+    } catch (e) {
+        console.error("Translation failed", e);
+        return text;
+    }
+};
+
 export const analyzeProfitability = async (dailyCups: number, locationType: string): Promise<string> => {
   if (!apiKey) {
-    // Fallback simulation if no API key is present
     await new Promise(resolve => setTimeout(resolve, 1500));
     return "【演示模式】请配置 API Key 以获取真实结果。\n\n模拟回复：\n根据您的店铺位置（市中心商业区），建议主推“泰奶咸法酪”和“芝芝葡萄”，这两款产品在年轻人群体中转化率最高，且适合拍照打卡。";
   }
@@ -43,9 +59,10 @@ export const analyzeProfitability = async (dailyCups: number, locationType: stri
 };
 
 export const getChatResponse = async (history: {role: string, parts: {text: string}[]}[], userMessage: string): Promise<string> => {
+   if (!userMessage) return "";
+
    if (!apiKey) {
       await new Promise(resolve => setTimeout(resolve, 1000));
-      // Simple keyword matching for demo
       if (userMessage.includes("加盟")) return "您好！很高兴您对 ONESIP LITE 感兴趣。我们的加盟模式非常灵活，0房租0装修，仅需引入设备即可。请问您目前的店铺类型是什么？（例如：餐厅、零售店、书店等）";
       if (userMessage.includes("费用") || userMessage.includes("多少钱")) return "我们的启动非常轻量化！主要是设备租赁押金和首批原料费。品牌管理费仅收营业额的 7%。具体收益您可以参考网页上方的【收益测算】板块。";
       if (userMessage.includes("人工")) return "ONESIP LITE 是高度自动化的！机器自动制作、自动清洗。通常现有店员兼职即可，无需专门聘请全职奶茶师。";

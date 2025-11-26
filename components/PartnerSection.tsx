@@ -1,11 +1,10 @@
-
 import React from 'react';
 import { CheckCircle2 } from 'lucide-react';
 import { useContent } from '../contexts/ContentContext';
 import { EditableText } from './ui/Editable';
 
 export const PartnerSection = () => {
-  const { content, updateSection, updateSectionItem, openLeadForm } = useContent();
+  const { content, updateSection, updateSectionItem, openLeadForm, language } = useContent();
   const { partner } = content;
 
   return (
@@ -17,7 +16,7 @@ export const PartnerSection = () => {
           
           <div className="relative z-10 max-w-3xl mx-auto">
             <h2 className="text-4xl font-black text-brand-cream mb-8">
-                <EditableText value={partner.title} onSave={(val) => updateSection('partner', 'title', val)} />
+                <EditableText value={partner.title[language]} onSave={(val) => updateSection('partner', 'title', val)} />
             </h2>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-left mb-12">
@@ -26,10 +25,10 @@ export const PartnerSection = () => {
                   <CheckCircle2 className="text-brand-green-pale mr-4 mt-1 flex-shrink-0" size={20} />
                   <div>
                     <div className="text-white font-bold text-sm">
-                        <EditableText value={req.title} onSave={(val) => updateSectionItem('partner', i, 'title', val)} />
+                        <EditableText value={req.title[language]} onSave={(val) => updateSectionItem('partner', i, 'title', val)} />
                     </div>
                     <div className="text-brand-green-pale text-xs mt-1">
-                        <EditableText value={req.desc} onSave={(val) => updateSectionItem('partner', i, 'desc', val)} />
+                        <EditableText value={req.desc[language]} onSave={(val) => updateSectionItem('partner', i, 'desc', val)} />
                     </div>
                   </div>
                 </div>
@@ -40,10 +39,10 @@ export const PartnerSection = () => {
                 onClick={openLeadForm}
                 className="bg-brand-cream text-brand-green-dark text-lg px-12 py-5 rounded-2xl font-bold shadow-2xl hover:bg-white transition transform hover:scale-105"
             >
-               <EditableText value={partner.buttonText} onSave={(val) => updateSection('partner', 'buttonText', val)} />
+               <EditableText value={partner.buttonText[language]} onSave={(val) => updateSection('partner', 'buttonText', val)} />
             </button>
             <p className="text-brand-green-light text-xs mt-6 opacity-70">
-               <EditableText value={partner.disclaimer} onSave={(val) => updateSection('partner', 'disclaimer', val)} />
+               <EditableText value={partner.disclaimer[language]} onSave={(val) => updateSection('partner', 'disclaimer', val)} />
             </p>
           </div>
         </div>

@@ -20,11 +20,11 @@ export const EditableText: React.FC<EditableTextProps> = ({
 }) => {
   const { isAdmin } = useContent();
   const [isEditing, setIsEditing] = useState(false);
-  const [tempValue, setTempValue] = useState(value);
+  const [tempValue, setTempValue] = useState(value || "");
   const inputRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
-    setTempValue(value);
+    setTempValue(value || "");
   }, [value]);
 
   useEffect(() => {
@@ -44,8 +44,10 @@ export const EditableText: React.FC<EditableTextProps> = ({
     }
   };
 
+  const safeValue = value || "";
+
   if (!isAdmin) {
-    return <Tag className={className} dangerouslySetInnerHTML={{__html: value.replace(/\n/g, '<br/>')}} />;
+    return <Tag className={className} dangerouslySetInnerHTML={{__html: safeValue.replace(/\n/g, '<br/>')}} />;
   }
 
   if (isEditing) {
@@ -81,10 +83,10 @@ export const EditableText: React.FC<EditableTextProps> = ({
       className={`${className} cursor-text hover:bg-brand-green-medium/10 hover:outline-dashed hover:outline-2 hover:outline-brand-green-medium/50 rounded transition-all relative`}
       title="点击编辑"
     >
-      {value.split('\n').map((line, i) => (
+      {safeValue.split('\n').map((line, i) => (
         <React.Fragment key={i}>
           {line}
-          {i < value.split('\n').length - 1 && <br />}
+          {i < safeValue.split('\n').length - 1 && <br />}
         </React.Fragment>
       ))}
       <span className="absolute -top-3 -right-3 bg-brand-green-dark text-white p-1 rounded-full opacity-0 hover:opacity-100 transition-opacity pointer-events-none scale-75">

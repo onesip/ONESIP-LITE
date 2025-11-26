@@ -1,21 +1,28 @@
 
+export type Language = 'zh' | 'en';
+
+export interface LocalizedText {
+  zh: string;
+  en: string;
+}
+
 export interface MenuItem {
   id: number;
-  name: string;
-  eng: string;
+  name: LocalizedText;
+  eng: string; // Keep as string, usually specific product code/name
   price: string;
-  tag: string;
-  desc: string;
-  ingredients: string[];
+  tag: LocalizedText;
+  desc: LocalizedText;
+  ingredients: string[]; // Simplification: Ingredients often shared or simple enough, but ideally localized too. Let's keep simple for now or assume simple strings.
   image: string;
 }
 
 // Model for the calculator comparison
 export interface FinancialModelItem {
-  id: string; // 'A', 'B', 'C', 'D' - needed for calculation logic mapping
-  name: string;
-  pros: string[];
-  cons: string[];
+  id: string; 
+  name: LocalizedText;
+  pros: LocalizedText[];
+  cons: LocalizedText[];
 }
 
 export interface CalculatedData {
@@ -29,19 +36,16 @@ export interface CalculatedData {
   isCapped: boolean;
 }
 
-// --- NEW: Lead Generation ---
 export interface Lead {
   id: string;
   name: string;
-  contact: string; // Phone or WeChat
+  contact: string;
   city: string;
-  businessType: string; // Restaurant, Shop, Other
+  businessType: string;
   message: string;
   timestamp: number;
   status: 'new' | 'contacted' | 'archived';
 }
-
-// --- CMS Content Types ---
 
 export interface CloudConfig {
   enabled: boolean;
@@ -50,171 +54,160 @@ export interface CloudConfig {
 }
 
 export interface HeroContent {
-  tagline: string;
-  titleLine1: string;
-  titleLine2: string;
-  subtitle: string;
-  description: string;
-  buttonText: string;
-  trustText: string;
-  image: string; // Added image field
+  tagline: LocalizedText;
+  titleLine1: LocalizedText;
+  titleLine2: LocalizedText;
+  subtitle: LocalizedText;
+  description: LocalizedText;
+  buttonText: LocalizedText;
+  trustText: LocalizedText;
+  image: string;
 }
 
-// Generic Item for lists (Model cards, Process steps, etc.)
 export interface SectionItem {
-  title: string;
-  desc: string;
-  tag?: string; // Optional for Process or Showcase
-  image?: string; // Optional for Showcase
+  title: LocalizedText;
+  desc: LocalizedText;
+  tag?: LocalizedText;
+  image?: string;
 }
 
 export interface ShowcaseItem extends SectionItem {
-  statValue: string;
-  statLabel: string;
+  statValue: LocalizedText;
+  statLabel: LocalizedText;
 }
 
 export interface FAQItem {
-  question: string;
-  answer: string;
+  question: LocalizedText;
+  answer: LocalizedText;
 }
 
 export interface ProcessPhase {
-  title: string;
-  subtitle: string;
-  badge: string;
-  benefitsTitle: string;
-  benefits: string[];
-  obligationsTitle: string;
-  obligations: string[];
+  title: LocalizedText;
+  subtitle: LocalizedText;
+  badge: LocalizedText;
+  benefitsTitle: LocalizedText;
+  benefits: LocalizedText[];
+  obligationsTitle: LocalizedText;
+  obligations: LocalizedText[];
 }
 
 export interface ModelContent {
   isVisible: boolean;
-  tagline: string;
-  title: string;
-  description: string;
+  tagline: LocalizedText;
+  title: LocalizedText;
+  description: LocalizedText;
   items: SectionItem[];
 }
 
 export interface ShowcaseContent {
   isVisible: boolean;
-  tagline: string;
-  title: string;
-  description: string;
+  tagline: LocalizedText;
+  title: LocalizedText;
+  description: LocalizedText;
   items: ShowcaseItem[];
 }
 
 export interface FAQContent {
   isVisible: boolean;
-  tagline: string;
-  title: string;
-  description: string;
+  tagline: LocalizedText;
+  title: LocalizedText;
+  description: LocalizedText;
   items: FAQItem[];
 }
 
 export interface ProcessContent {
   isVisible: boolean;
-  tagline: string;
-  title: string;
-  description: string;
+  tagline: LocalizedText;
+  title: LocalizedText;
+  description: LocalizedText;
   phases: ProcessPhase[]; 
 }
 
-// New Type for the Comparison Matrix
 export interface ComparisonRow {
-  name: string;
-  rental: boolean; // Is it in rental package?
-  lite: 'Y' | 'N' | 'S'; // Y=Included, N=No, S=Store/Self Provide
-  self: boolean; // Do you need to buy it yourself in DIY?
+  name: LocalizedText;
+  rental: boolean;
+  lite: 'Y' | 'N' | 'S';
+  self: boolean;
 }
 
 export interface ComparisonCategory {
-  title: string;
+  title: LocalizedText;
   items: ComparisonRow[];
 }
 
 export interface ComparisonContent {
   isVisible: boolean;
-  tagline: string;
-  title: string;
-  description: string;
-  col1Title: string;
-  col2Title: string;
-  col3Title: string;
-  note1: string;
-  note2: string;
+  tagline: LocalizedText;
+  title: LocalizedText;
+  description: LocalizedText;
+  col1Title: LocalizedText;
+  col2Title: LocalizedText;
+  col3Title: LocalizedText;
+  note1: LocalizedText;
+  note2: LocalizedText;
   categories: ComparisonCategory[];
 }
 
 export interface FinancialsContent {
   isVisible: boolean;
-  tagline: string;
-  title: string;
-  description: string;
-  disclaimer: string;
+  tagline: LocalizedText;
+  title: LocalizedText;
+  description: LocalizedText;
+  disclaimer: LocalizedText;
   
-  // Interactive element labels
-  labelSales: string;
+  labelSales: LocalizedText;
   labelCups: string;
   labelMin: string;
   labelTarget: string;
   labelMax: string;
   
-  // Alert labels
-  alertTitle: string;
-  alertDesc: string;
+  alertTitle: LocalizedText;
+  alertDesc: LocalizedText;
   
-  // Result card labels
-  labelProfit: string;
-  labelRevenue: string;
-  labelCost: string;
+  labelProfit: LocalizedText;
+  labelRevenue: LocalizedText;
+  labelCost: LocalizedText;
   
-  // AI section
-  aiButton: string;
-  aiButtonLoading: string;
-  aiResultTitle: string;
+  aiButton: LocalizedText;
+  aiButtonLoading: LocalizedText;
+  aiResultTitle: LocalizedText;
   
-  // Comparison list
-  comparisonTitle: string;
+  comparisonTitle: LocalizedText;
   
-  // Breakdown Details
-  breakdownRevenue: string;
-  breakdownMaterials: string;
-  breakdownLabor: string;
-  breakdownRent: string;
-  breakdownEquip: string;
-  breakdownMisc: string;
-  breakdownNet: string;
+  breakdownRevenue: LocalizedText;
+  breakdownMaterials: LocalizedText;
+  breakdownLabor: LocalizedText;
+  breakdownRent: LocalizedText;
+  breakdownEquip: LocalizedText;
+  breakdownMisc: LocalizedText;
+  breakdownNet: LocalizedText;
   
-  // Chart
-  chartTitle: string;
-
-  // The comparison models
+  chartTitle: LocalizedText;
   models: FinancialModelItem[];
 }
 
 export interface MenuSectionContent {
   isVisible: boolean;
-  tagline: string;
-  title: string;
-  description: string;
+  tagline: LocalizedText;
+  title: LocalizedText;
+  description: LocalizedText;
   phases?: any; 
 }
 
 export interface PartnerContent {
   isVisible: boolean;
-  title: string;
-  buttonText: string;
-  disclaimer: string;
+  title: LocalizedText;
+  buttonText: LocalizedText;
+  disclaimer: LocalizedText;
   items: SectionItem[];
 }
 
 export interface FooterContent {
-  aboutText: string;
-  contactTitle: string;
+  aboutText: LocalizedText;
+  contactTitle: LocalizedText;
   email: string;
   address: string;
-  resourceTitle: string;
+  resourceTitle: LocalizedText;
   copyright: string;
 }
 
@@ -230,11 +223,9 @@ export interface SiteContent {
   menu: MenuItem[];
   partner: PartnerContent;
   footer: FooterContent;
-  library: string[]; // For storing uploaded images
-  leads: Lead[]; // NEW: Storing user submissions
+  library: string[];
+  leads: Lead[];
 }
-
-// --- Chat System Types ---
 
 export type ChatSender = 'user' | 'ai' | 'admin';
 
