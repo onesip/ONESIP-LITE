@@ -394,9 +394,20 @@ interface ContentContextType {
 const ContentContext = createContext<ContentContextType | undefined>(undefined);
 
 // Helper to safely access env vars to prevent crashes
+// Updated to check both REACT_APP_ (Classic CRA) and VITE_ (Modern Vite) prefixes
 const getEnv = (key: string) => {
   try {
-    return (typeof process !== 'undefined' && process.env && process.env[key]) || "";
+    if (typeof process !== 'undefined' && process.env) {
+       // Check exact key
+       if (process.env[key]) return process.env[key];
+       
+       // Try VITE_ prefix if the key starts with REACT_APP_
+       if (key.startsWith('REACT_APP_')) {
+          const viteKey = key.replace('REACT_APP_', 'VITE_');
+          if (process.env[viteKey]) return process.env[viteKey];
+       }
+    }
+    return "";
   } catch (e) {
     return "";
   }
@@ -412,92 +423,108 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   // Load Cloud Config first, then content
   useEffect(() => {
+    // WATCHDOG: Force app to load after 3 seconds if it hangs
+    const timeoutId = setTimeout(() => {
+        setIsLoading(prev => {
+            if (prev) console.warn("Forcing app load due to timeout");
+            return false;
+        });
+    }, 3000);
+
     const init = async () => {
       setIsLoading(true);
       
-      // 1. Load Cloud Config from LocalStorage
-      const savedCloudConfig = localStorage.getItem('onesip_cloud_config');
-      let currentConfig: CloudConfig = { enabled: false, binId: '', apiKey: '' };
-      
-      if (savedCloudConfig) {
-        try {
-          currentConfig = JSON.parse(savedCloudConfig);
-        } catch (e) {
-          console.error("Failed to parse cloud config", e);
+      try {
+        // 1. Load Cloud Config from LocalStorage
+        const savedCloudConfig = localStorage.getItem('onesip_cloud_config');
+        let currentConfig: CloudConfig = { enabled: false, binId: '', apiKey: '' };
+        
+        if (savedCloudConfig) {
+            try {
+            currentConfig = JSON.parse(savedCloudConfig);
+            } catch (e) {
+            console.error("Failed to parse cloud config", e);
+            }
+        } 
+        
+        // CRITICAL: Safe Env Access
+        const envBinId = getEnv('REACT_APP_CLOUD_BIN_ID');
+        const envApiKey = getEnv('REACT_APP_CLOUD_API_KEY');
+        
+        if (!currentConfig.apiKey && envBinId && envApiKey) {
+            currentConfig = {
+                enabled: true,
+                binId: envBinId,
+                apiKey: envApiKey
+            };
+            console.log("Using Environment Variables for Cloud Config");
         }
-      } 
-      
-      // CRITICAL: Safe Env Access
-      const envBinId = getEnv('REACT_APP_CLOUD_BIN_ID');
-      const envApiKey = getEnv('REACT_APP_CLOUD_API_KEY');
-      
-      if (!currentConfig.apiKey && envBinId && envApiKey) {
-          currentConfig = {
-              enabled: true,
-              binId: envBinId,
-              apiKey: envApiKey
-          };
-          console.log("Using Environment Variables for Cloud Config");
-      }
 
-      setCloudConfig(currentConfig);
+        setCloudConfig(currentConfig);
 
-      // 2. Fetch Content (Cloud priority, then Local)
-      if (currentConfig.enabled && currentConfig.binId && currentConfig.apiKey) {
-        try {
-           const cloudData = await fetchCloudContent(currentConfig.binId, currentConfig.apiKey);
-           if (cloudData) {
-               // Merge with default to ensure structure integrity
-               setContent(prev => ({
-                   ...defaultContent,
-                   ...cloudData,
-                    process: {
-                        ...defaultContent.process,
-                        ...cloudData.process,
-                        phases: cloudData.process?.phases || defaultContent.process.phases
-                    },
-                    financials: {
-                        ...defaultContent.financials,
-                        ...cloudData.financials,
-                        models: cloudData.financials?.models || defaultContent.financials.models 
-                    },
-                    comparison: cloudData.comparison || defaultContent.comparison,
-                    showcase: cloudData.showcase || defaultContent.showcase,
-                    faq: cloudData.faq || defaultContent.faq
-               }));
-               setIsLoading(false);
-               return; // Exit if cloud fetch successful
-           }
-        } catch (e) {
-            console.error("Cloud fetch failed, falling back to local", e);
-            // Fallthrough to local
+        // 2. Fetch Content (Cloud priority, then Local)
+        if (currentConfig.enabled && currentConfig.binId && currentConfig.apiKey) {
+            try {
+            const cloudData = await fetchCloudContent(currentConfig.binId, currentConfig.apiKey);
+            if (cloudData) {
+                // Merge with default to ensure structure integrity
+                setContent(prev => ({
+                    ...defaultContent,
+                    ...cloudData,
+                        process: {
+                            ...defaultContent.process,
+                            ...cloudData.process,
+                            phases: cloudData.process?.phases || defaultContent.process.phases
+                        },
+                        financials: {
+                            ...defaultContent.financials,
+                            ...cloudData.financials,
+                            models: cloudData.financials?.models || defaultContent.financials.models 
+                        },
+                        comparison: cloudData.comparison || defaultContent.comparison,
+                        showcase: cloudData.showcase || defaultContent.showcase,
+                        faq: cloudData.faq || defaultContent.faq
+                }));
+                setIsLoading(false);
+                clearTimeout(timeoutId);
+                return; // Exit if cloud fetch successful
+            }
+            } catch (e) {
+                console.error("Cloud fetch failed, falling back to local", e);
+                // Fallthrough to local
+            }
         }
-      }
 
-      // 3. Fallback to LocalStorage Content (Only for Admin who might have edited offline)
-      const savedContent = localStorage.getItem('onesip_content');
-      if (savedContent) {
-        try {
-          const parsed = JSON.parse(savedContent);
-           setContent(prev => ({
-               ...defaultContent,
-               ...parsed,
-               // Deep merge safety
-               process: { ...defaultContent.process, ...parsed.process, phases: parsed.process?.phases || defaultContent.process.phases },
-               financials: { ...defaultContent.financials, ...parsed.financials, models: parsed.financials?.models || defaultContent.financials.models },
-               comparison: parsed.comparison || defaultContent.comparison,
-               showcase: parsed.showcase || defaultContent.showcase,
-               faq: parsed.faq || defaultContent.faq
-           }));
-        } catch (e) {
-          console.error("Failed to parse local content", e);
+        // 3. Fallback to LocalStorage Content (Only for Admin who might have edited offline)
+        const savedContent = localStorage.getItem('onesip_content');
+        if (savedContent) {
+            try {
+            const parsed = JSON.parse(savedContent);
+            setContent(prev => ({
+                ...defaultContent,
+                ...parsed,
+                // Deep merge safety
+                process: { ...defaultContent.process, ...parsed.process, phases: parsed.process?.phases || defaultContent.process.phases },
+                financials: { ...defaultContent.financials, ...parsed.financials, models: parsed.financials?.models || defaultContent.financials.models },
+                comparison: parsed.comparison || defaultContent.comparison,
+                showcase: parsed.showcase || defaultContent.showcase,
+                faq: parsed.faq || defaultContent.faq
+            }));
+            } catch (e) {
+            console.error("Failed to parse local content", e);
+            }
         }
+      } catch (e) {
+          console.error("Catastrophic error in initialization", e);
+      } finally {
+          setIsLoading(false);
+          clearTimeout(timeoutId);
       }
-      
-      setIsLoading(false);
     };
 
     init();
+    
+    return () => clearTimeout(timeoutId);
   }, []);
 
   const login = () => { setIsAdmin(true); setIsDashboardOpen(true); };
