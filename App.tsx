@@ -69,9 +69,10 @@ const App: React.FC = () => {
   if (isLoading) {
     return (
         <div className="h-screen w-full bg-brand-surface flex flex-col items-center justify-center gap-4">
-            <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center text-brand-dark shadow-app animate-bounce">
-                <LogoSymbol className="w-6 h-6"/>
+            <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center text-brand-green-medium shadow-app animate-bounce">
+                <LogoSymbol className="w-8 h-8"/>
             </div>
+            <p className="text-brand-gray text-xs font-medium tracking-widest uppercase">Loading Onesip</p>
         </div>
     );
   }
@@ -85,7 +86,7 @@ const App: React.FC = () => {
   }
 
   return (
-    <div className="font-sans text-brand-dark bg-brand-surface selection:bg-brand-green-light selection:text-brand-green-dark relative antialiased">
+    <div className="font-sans text-brand-dark bg-brand-surface selection:bg-brand-green-medium selection:text-white relative antialiased pb-20">
       <Navbar 
         activeSection={activeSection} 
         scrollToSection={scrollToSection} 
@@ -94,7 +95,8 @@ const App: React.FC = () => {
       
       <Hero scrollToSection={scrollToSection} />
       
-      <div className="space-y-4 md:space-y-0">
+      {/* Main Content Container with spacing */}
+      <div className="space-y-6 md:space-y-8 pb-12">
           <SectionWrapper isVisible={content.model.isVisible} isAdmin={isAdmin}>
              <ModelSection />
           </SectionWrapper>
@@ -134,9 +136,9 @@ const App: React.FC = () => {
 
       {/* Modern Sync Overlay */}
       {isSyncing && (
-          <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[10001] bg-black/80 backdrop-blur-md text-white px-5 py-2.5 rounded-full flex items-center gap-3 shadow-2xl animate-in slide-in-from-top-4 border border-white/10">
-              <Loader2 size={16} className="animate-spin text-brand-green-light"/>
-              <span className="text-xs font-bold tracking-wide">Syncing to Cloud...</span>
+          <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[10001] bg-white/90 backdrop-blur-md text-brand-dark px-5 py-2.5 rounded-full flex items-center gap-3 shadow-2xl animate-in slide-in-from-top-4 border border-black/5">
+              <Loader2 size={16} className="animate-spin text-brand-green-medium"/>
+              <span className="text-xs font-bold tracking-wide">同步云端数据中...</span>
           </div>
       )}
 
@@ -149,7 +151,7 @@ const App: React.FC = () => {
            
            <button 
              onClick={saveChanges}
-             className="bg-brand-green-medium hover:bg-brand-green-dark text-white w-14 h-14 rounded-full shadow-app flex items-center justify-center transition-transform hover:scale-105 border border-white/10"
+             className="bg-brand-green-medium hover:bg-brand-green-dark text-white w-14 h-14 rounded-full shadow-app flex items-center justify-center transition-transform hover:scale-105"
              title="Save Changes"
            >
              <Save size={22} />
@@ -157,7 +159,7 @@ const App: React.FC = () => {
 
            <button 
              onClick={openDashboard}
-             className="bg-white hover:bg-gray-50 text-black w-14 h-14 rounded-full shadow-app flex items-center justify-center transition-transform hover:scale-105 border border-gray-200"
+             className="bg-white hover:bg-gray-50 text-black w-14 h-14 rounded-full shadow-app flex items-center justify-center transition-transform hover:scale-105 border border-gray-100"
              title="Back to Dashboard"
            >
              <LogOut size={18} className="rotate-180" />

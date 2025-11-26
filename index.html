@@ -3,8 +3,8 @@
 <html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ONESIP LITE | 轻量化店中店招商</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>ONESIP LITE | 智能店中店</title>
     
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -19,21 +19,21 @@
           extend: {
             colors: {
               brand: {
-                cream: '#FFFFFF',      // Cards are white
-                surface: '#F2F2F7',    // Apple System Grey 6 (Background)
-                border: '#E5E5EA',     // Apple Separator Color
-                dark: '#000000',       
-                gray: '#8E8E93',       // Apple System Gray
+                cream: '#FFFFFF',      // Cards are Pure White
+                surface: '#F5F5F7',    // iOS System Gray (Background)
+                border: '#E5E5EA',     // iOS Separator
+                dark: '#1D1D1F',       // iOS Black Text
+                gray: '#86868B',       // iOS Subtitle Gray
                 green: {
                   dark: '#113321',     
-                  medium: '#2E5C46',   
+                  medium: '#06C167',   // Brighter, "App-like" Green
                   light: '#E6F0EB',    
                   pale: '#F2F2F7',     
                 }
               }
             },
             fontFamily: {
-              sans: ['Inter', 'Noto Sans SC', 'sans-serif'],
+              sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Noto Sans SC', 'sans-serif'],
             },
             animation: {
               'float': 'float 6s ease-in-out infinite',
@@ -56,8 +56,9 @@
             },
             boxShadow: {
               'glass': '0 8px 30px rgba(0, 0, 0, 0.04)',
-              'subtle': '0 1px 3px rgba(0, 0, 0, 0.05)',
-              'app': '0 10px 40px -10px rgba(0,0,0,0.05)'
+              'subtle': '0 2px 8px rgba(0, 0, 0, 0.04)',
+              'app': '0 10px 30px -10px rgba(0,0,0,0.08)',
+              'card': '0 4px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px -1px rgba(0, 0, 0, 0.02)'
             }
           }
         }
@@ -67,25 +68,25 @@
       html, body {
         height: 100%;
         margin: 0;
-        background-color: #F2F2F7; /* Apple System Background */
-        color: #000000;
+        background-color: #F5F5F7; /* iOS Background */
+        color: #1D1D1F;
         -webkit-font-smoothing: antialiased;
+        -webkit-tap-highlight-color: transparent;
       }
       /* Custom Scrollbar */
-      ::-webkit-scrollbar { width: 6px; }
-      ::-webkit-scrollbar-track { background: #F2F2F7; }
-      ::-webkit-scrollbar-thumb { background: #C7C7CC; border-radius: 3px; }
-      ::-webkit-scrollbar-thumb:hover { background: #8E8E93; }
+      ::-webkit-scrollbar { width: 0px; background: transparent; } /* Hidden scrollbar for app feel */
       
       .glass-panel {
-        background: rgba(255, 255, 255, 0.8);
+        background: rgba(255, 255, 255, 0.75);
         backdrop-filter: blur(20px);
         -webkit-backdrop-filter: blur(20px);
-        border: 1px solid rgba(0,0,0,0.05);
+        border-bottom: 0.5px solid rgba(0,0,0,0.05);
       }
+      
+      /* Smooth Scrolling */
+      html { scroll-behavior: smooth; }
     </style>
     
-    <!-- CRITICAL: Polyfill for process.env -->
     <script>
       if (typeof process === 'undefined') {
         window.process = { env: {} };
