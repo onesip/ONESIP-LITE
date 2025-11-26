@@ -1,7 +1,16 @@
+
 import { GoogleGenAI } from "@google/genai";
 
-// Ideally, this comes from a secure backend proxy, but for this demo environment:
-const apiKey = process.env.API_KEY || ""; 
+// Helper to safely access env vars to prevent crashes
+const getEnv = (key: string) => {
+  try {
+    return (typeof process !== 'undefined' && process.env && process.env[key]) || "";
+  } catch (e) {
+    return "";
+  }
+};
+
+const apiKey = getEnv('API_KEY');
 
 export const analyzeProfitability = async (dailyCups: number, locationType: string): Promise<string> => {
   if (!apiKey) {
