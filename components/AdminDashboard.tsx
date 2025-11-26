@@ -28,7 +28,11 @@ import {
   Sparkles,
   ExternalLink,
   Copy,
-  Rocket
+  Rocket,
+  ClipboardList,
+  MapPin,
+  Store,
+  Clock
 } from 'lucide-react';
 import { LogoSymbol } from './BrandLogo';
 
@@ -37,6 +41,14 @@ const DashboardHome = ({ onNavigate }: { onNavigate: (tab: any) => void }) => {
   const { closeDashboard, content, toggleSectionVisibility } = useContent();
 
   const modules = [
+    {
+      title: "加盟申请 (Leads)",
+      desc: "查看并管理用户提交的意向表单，跟进销售线索。",
+      icon: ClipboardList,
+      color: "bg-orange-500",
+      action: () => onNavigate('leads'),
+      label: "查看线索"
+    },
     {
       title: "CMS 页面装修",
       desc: "可视化编辑前台内容，管理菜单产品，新增业务模块。",
@@ -83,7 +95,7 @@ const DashboardHome = ({ onNavigate }: { onNavigate: (tab: any) => void }) => {
         <p className="text-gray-400">请选择您要管理的核心模块</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         {modules.map((mod, i) => (
           <div key={i} className="group relative bg-[#1C1C1E] border border-white/5 rounded-3xl p-8 hover:bg-[#252528] transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl hover:shadow-black/50 flex flex-col">
             <div className={`w-16 h-16 rounded-2xl ${mod.color} flex items-center justify-center text-white shadow-lg mb-8 group-hover:scale-110 transition-transform`}>
@@ -130,27 +142,97 @@ const DashboardHome = ({ onNavigate }: { onNavigate: (tab: any) => void }) => {
           </div>
       </div>
 
-      {/* Stats Summary */}
-      <div className="pt-10 border-t border-white/5 grid grid-cols-2 md:grid-cols-4 gap-6">
-         <div className="bg-[#161618] rounded-2xl p-6 flex items-center gap-4 border border-white/5">
-            <div className="w-10 h-10 rounded-full bg-brand-green-medium/20 text-brand-green-medium flex items-center justify-center"><Users size={20}/></div>
-            <div>
-              <div className="text-2xl font-bold text-white">1,204</div>
-              <div className="text-xs text-gray-500">今日访问</div>
-            </div>
-         </div>
-         <div className="bg-[#161618] rounded-2xl p-6 flex items-center gap-4 border border-white/5">
-            <div className="w-10 h-10 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center"><TrendingUp size={20}/></div>
-            <div>
-              <div className="text-2xl font-bold text-white">8.5%</div>
-              <div className="text-xs text-gray-500">转化率</div>
-            </div>
-         </div>
-         {/* More stats... */}
-      </div>
-
     </div>
   );
+};
+
+// --- Sub-Component: Leads ---
+const DashboardLeads = () => {
+    const { content, saveChanges } = useContent();
+    const leads = content.leads || [];
+
+    // Sort by newest first
+    const sortedLeads = [...leads].sort((a, b) => b.timestamp - a.timestamp);
+
+    return (
+        <div className="max-w-5xl mx-auto space-y-6 animate-fade-in">
+             <div className="flex items-center justify-between mb-8">
+                 <h3 className="text-2xl font-bold text-white flex items-center gap-3">
+                     <ClipboardList className="text-orange-500" />
+                     加盟申请列表
+                     <span className="text-sm bg-white/10 px-3 py-1 rounded-full text-gray-400">{leads.length}</span>
+                 </h3>
+                 <button onClick={saveChanges} className="bg-brand-green-medium hover:bg-brand-green-dark text-white px-4 py-2 rounded-lg text-xs font-bold transition-colors">
+                     刷新/保存状态
+                 </button>
+             </div>
+
+             {leads.length === 0 ? (
+                 <div className="text-center py-20 bg-[#1C1C1E] rounded-3xl border border-white/5">
+                     <ClipboardList size={48} className="mx-auto text-gray-600 mb-4" />
+                     <p className="text-gray-400">暂无申请数据。</p>
+                 </div>
+             ) : (
+                 <div className="grid grid-cols-1 gap-4">
+                     {sortedLeads.map((lead) => (
+                         <div key={lead.id} className="bg-[#1C1C1E] border border-white/5 rounded-2xl p-6 flex flex-col md:flex-row gap-6 hover:bg-[#252528] transition-colors group relative overflow-hidden">
+                             {/* New Indicator */}
+                             {lead.status === 'new' && (
+                                 <div className="absolute top-0 right-0 bg-red-500 text-white text-[10px] font-bold px-3 py-1 rounded-bl-xl shadow-lg">NEW</div>
+                             )}
+
+                             {/* Contact Info */}
+                             <div className="w-full md:w-1/4 shrink-0">
+                                 <div className="flex items-center gap-3 mb-2">
+                                     <div className="w-10 h-10 rounded-full bg-orange-500/20 text-orange-500 flex items-center justify-center font-bold text-lg">
+                                         {lead.name.charAt(0).toUpperCase()}
+                                     </div>
+                                     <div>
+                                         <h4 className="text-white font-bold">{lead.name}</h4>
+                                         <p className="text-xs text-gray-400 flex items-center gap-1">
+                                             <Clock size={10} /> {new Date(lead.timestamp).toLocaleDateString()} {new Date(lead.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}
+                                         </p>
+                                     </div>
+                                 </div>
+                                 <div className="space-y-2 mt-4">
+                                     <div className="bg-black/20 px-3 py-2 rounded-lg flex items-center gap-2 text-sm text-gray-300">
+                                         <MapPin size={14} className="text-gray-500"/> {lead.city}
+                                     </div>
+                                     <div className="bg-black/20 px-3 py-2 rounded-lg flex items-center gap-2 text-sm text-brand-green-medium font-mono">
+                                         <User size={14} className="text-gray-500"/> {lead.contact}
+                                     </div>
+                                 </div>
+                             </div>
+
+                             {/* Details */}
+                             <div className="flex-1 border-t md:border-t-0 md:border-l border-white/5 md:pl-6 pt-4 md:pt-0">
+                                 <div className="flex items-center gap-3 mb-4">
+                                      <span className="text-xs font-bold text-gray-500 uppercase">店铺类型</span>
+                                      <span className="px-3 py-1 bg-blue-500/10 text-blue-400 rounded-full text-xs font-bold flex items-center gap-1">
+                                          <Store size={12} /> {lead.businessType}
+                                      </span>
+                                 </div>
+                                 <div className="bg-[#111211] rounded-xl p-4 text-sm text-gray-300 leading-relaxed border border-white/5">
+                                     <span className="text-xs font-bold text-gray-500 block mb-1 uppercase">留言内容</span>
+                                     {lead.message || "无留言"}
+                                 </div>
+                             </div>
+
+                             {/* Actions (Mock) */}
+                             <div className="flex md:flex-col justify-end gap-2 pt-4 md:pt-0">
+                                 <button className="bg-brand-green-medium/20 text-brand-green-medium hover:bg-brand-green-medium hover:text-white px-4 py-2 rounded-lg text-xs font-bold transition-colors">
+                                     标记已联络
+                                 </button>
+                                 <button className="bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white px-4 py-2 rounded-lg text-xs font-bold transition-colors">
+                                     复制信息
+                                 </button>
+                             </div>
+                         </div>
+                     ))}
+                 </div>
+             )}
+        </div>
+    );
 };
 
 // --- Sub-Component: Settings (Cloud) ---
@@ -606,7 +688,7 @@ const DashboardMedia = () => {
 
 export const AdminDashboard = () => {
   const { logout, closeDashboard } = useContent();
-  const [activeTab, setActiveTab] = useState<'home' | 'cms' | 'media' | 'chat' | 'settings'>('home');
+  const [activeTab, setActiveTab] = useState<'home' | 'cms' | 'media' | 'chat' | 'settings' | 'leads'>('home');
 
   return (
     <div className="flex h-screen w-full bg-[#111211] text-gray-200 font-sans selection:bg-brand-green-medium selection:text-white overflow-hidden">
@@ -636,6 +718,12 @@ export const AdminDashboard = () => {
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'home' ? 'bg-brand-green-medium text-white shadow-lg shadow-brand-green-medium/20' : 'text-gray-400 hover:bg-white/5 hover:text-white'}`}
             >
                 <LayoutDashboard size={18} /> 概览 / 模块
+            </button>
+            <button 
+                onClick={() => setActiveTab('leads')}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'leads' ? 'bg-brand-green-medium text-white shadow-lg shadow-brand-green-medium/20' : 'text-gray-400 hover:bg-white/5 hover:text-white'}`}
+            >
+                <ClipboardList size={18} /> 加盟申请 (Leads)
             </button>
             <button 
                 onClick={() => setActiveTab('chat')}
@@ -681,6 +769,7 @@ export const AdminDashboard = () => {
         <div className="h-20 border-b border-white/5 flex items-center justify-between px-8 bg-[#111211]/80 backdrop-blur z-20">
           <h2 className="text-2xl font-bold text-white capitalize">
              {activeTab === 'home' && "控制台 / 模块显示管理"}
+             {activeTab === 'leads' && "加盟申请 (Leads)"}
              {activeTab === 'chat' && "客服中心 (Live Chat)"}
              {activeTab === 'media' && "媒体图库 (Media Library)"}
              {activeTab === 'settings' && "系统设置 (System Settings)"}
@@ -702,6 +791,7 @@ export const AdminDashboard = () => {
         {/* View Content */}
         <div className="flex-1 overflow-auto p-8 bg-[#0F0F10]">
             {activeTab === 'home' && <DashboardHome onNavigate={setActiveTab} />}
+            {activeTab === 'leads' && <DashboardLeads />}
             {activeTab === 'chat' && <DashboardChat />}
             {activeTab === 'media' && <DashboardMedia />}
             {activeTab === 'settings' && <DashboardSettings />}

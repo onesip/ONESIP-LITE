@@ -29,6 +29,18 @@ export interface CalculatedData {
   isCapped: boolean;
 }
 
+// --- NEW: Lead Generation ---
+export interface Lead {
+  id: string;
+  name: string;
+  contact: string; // Phone or WeChat
+  city: string;
+  businessType: string; // Restaurant, Shop, Other
+  message: string;
+  timestamp: number;
+  status: 'new' | 'contacted' | 'archived';
+}
+
 // --- CMS Content Types ---
 
 export interface CloudConfig {
@@ -218,7 +230,8 @@ export interface SiteContent {
   menu: MenuItem[];
   partner: PartnerContent;
   footer: FooterContent;
-  library: string[]; // NEW: For storing uploaded images
+  library: string[]; // For storing uploaded images
+  leads: Lead[]; // NEW: Storing user submissions
 }
 
 // --- Chat System Types ---

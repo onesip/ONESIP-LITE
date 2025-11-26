@@ -1,6 +1,6 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { SiteContent, MenuItem, HeroContent, SectionItem, FinancialModelItem, ProcessPhase, CloudConfig, ShowcaseItem, FAQItem } from '../types';
+import { SiteContent, MenuItem, HeroContent, SectionItem, FinancialModelItem, ProcessPhase, CloudConfig, ShowcaseItem, FAQItem, Lead } from '../types';
 import { fetchCloudContent, saveCloudContent } from '../services/storageService';
 import { APP_CONFIG } from '../config';
 
@@ -363,7 +363,8 @@ const defaultContent: SiteContent = {
     resourceTitle: "资源下载",
     copyright: "© 2025 ONESIP B.V."
   },
-  library: []
+  library: [],
+  leads: []
 };
 
 interface ContentContextType {
@@ -373,12 +374,17 @@ interface ContentContextType {
   isSyncing: boolean;
   isAdmin: boolean;
   isDashboardOpen: boolean;
-  dataSource: 'cloud' | 'local' | 'default'; // New property for debugging
+  dataSource: 'cloud' | 'local' | 'default'; 
+  isLeadFormOpen: boolean; // NEW
+  
   login: () => void;
   logout: () => void;
   toggleAdmin: () => void;
   openDashboard: () => void;
   closeDashboard: () => void;
+  openLeadForm: () => void; // NEW
+  closeLeadForm: () => void; // NEW
+  
   updateCloudConfig: (config: Partial<CloudConfig>) => void;
   updateHero: (field: keyof HeroContent, value: string) => void;
   updateSection: (section: keyof SiteContent, field: string, value: any) => void;
@@ -393,6 +399,8 @@ interface ContentContextType {
   updateProcessPhaseDetail: (phaseIndex: number, type: 'benefits' | 'obligations', detailIndex: number, value: string) => void;
   addToLibrary: (url: string) => void;
   removeFromLibrary: (url: string) => void;
+  submitLead: (lead: Omit<Lead, 'id' | 'timestamp' | 'status'>) => Promise<void>; // NEW
+  
   saveChanges: () => void;
   resetContent: () => void;
 }
@@ -404,6 +412,7 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [cloudConfig, setCloudConfig] = useState<CloudConfig>({ enabled: false, binId: '', apiKey: '' });
   const [isAdmin, setIsAdmin] = useState(false);
   const [isDashboardOpen, setIsDashboardOpen] = useState(false);
+  const [isLeadFormOpen, setIsLeadFormOpen] = useState(false); // NEW
   const [isLoading, setIsLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
   const [dataSource, setDataSource] = useState<'cloud' | 'local' | 'default'>('default');
@@ -462,7 +471,8 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
                             comparison: cloudData.comparison || defaultContent.comparison,
                             showcase: cloudData.showcase || defaultContent.showcase,
                             faq: cloudData.faq || defaultContent.faq,
-                            library: cloudData.library || []
+                            library: cloudData.library || [],
+                            leads: cloudData.leads || []
                     }));
                     setDataSource('cloud');
                     setIsLoading(false);
@@ -488,7 +498,8 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
                     comparison: parsed.comparison || defaultContent.comparison,
                     showcase: parsed.showcase || defaultContent.showcase,
                     faq: parsed.faq || defaultContent.faq,
-                    library: parsed.library || []
+                    library: parsed.library || [],
+                    leads: parsed.leads || []
                 }));
                 setDataSource('local');
             } catch (e) {}
@@ -513,6 +524,8 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const toggleAdmin = () => setIsAdmin(prev => !prev);
   const openDashboard = () => setIsDashboardOpen(true);
   const closeDashboard = () => setIsDashboardOpen(false);
+  const openLeadForm = () => setIsLeadFormOpen(true);
+  const closeLeadForm = () => setIsLeadFormOpen(false);
 
   // --- Update Functions ---
   const updateCloudConfig = (config: Partial<CloudConfig>) => {
@@ -631,8 +644,6 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setIsSyncing(true);
     localStorage.setItem('onesip_content', JSON.stringify(content));
     
-    // Check config priority: Context state overrides, but usually initialized from config.ts
-    // If config.ts is set, use it.
     let targetBin = cloudConfig.binId;
     let targetKey = cloudConfig.apiKey;
 
@@ -644,15 +655,41 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
     if (targetBin && targetKey) {
         try {
             await saveCloudContent(targetBin, targetKey, content);
-            alert("同步成功！更改已保存到云端。\n任何打开 App 的用户都会看到更新。");
+            // alert("同步成功！更改已保存到云端。\n任何打开 App 的用户都会看到更新。"); 
+            // Commented out alert to avoid spamming if called programmatically
         } catch (e) {
-            alert("本地保存成功，但云端同步失败。请检查网络。");
+            console.error("Sync failed", e);
+            // alert("本地保存成功，但云端同步失败。请检查网络。");
         }
-    } else {
-        alert("已保存到本地。\n注意：未配置 config.ts，其他用户无法看到这些更改。");
-    }
+    } 
     
     setIsSyncing(false);
+  };
+
+  // Wrapper for submitLead to include auto-save
+  const submitLead = async (leadData: Omit<Lead, 'id' | 'timestamp' | 'status'>) => {
+     const newLead: Lead = {
+        ...leadData,
+        id: Date.now().toString(),
+        timestamp: Date.now(),
+        status: 'new'
+    };
+    
+    // Optimistic Update
+    const newContent = { ...content, leads: [newLead, ...(content.leads || [])] };
+    setContent(newContent);
+    localStorage.setItem('onesip_content', JSON.stringify(newContent));
+
+    // Try Cloud Sync
+    if (cloudConfig.enabled || (APP_CONFIG.ENABLE_CLOUD_SYNC && APP_CONFIG.CLOUD_BIN_ID)) {
+         setIsSyncing(true);
+         let targetBin = cloudConfig.binId || APP_CONFIG.CLOUD_BIN_ID;
+         let targetKey = cloudConfig.apiKey || APP_CONFIG.CLOUD_API_KEY;
+         try {
+             await saveCloudContent(targetBin, targetKey, newContent);
+         } catch(e) { console.error("Cloud sync lead failed", e) }
+         setIsSyncing(false);
+    }
   };
 
   const resetContent = () => {
@@ -671,11 +708,14 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
       isAdmin, 
       isDashboardOpen, 
       dataSource,
+      isLeadFormOpen,
       login, 
       logout,
       toggleAdmin,
       openDashboard,
       closeDashboard,
+      openLeadForm,
+      closeLeadForm,
       updateCloudConfig,
       updateHero, 
       updateSection,
@@ -690,6 +730,7 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
       updateProcessPhaseDetail,
       addToLibrary,
       removeFromLibrary,
+      submitLead,
       saveChanges, 
       resetContent 
     }}>

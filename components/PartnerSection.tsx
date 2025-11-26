@@ -5,7 +5,7 @@ import { useContent } from '../contexts/ContentContext';
 import { EditableText } from './ui/Editable';
 
 export const PartnerSection = () => {
-  const { content, updateSection, updateSectionItem } = useContent();
+  const { content, updateSection, updateSectionItem, openLeadForm } = useContent();
   const { partner } = content;
 
   return (
@@ -36,7 +36,10 @@ export const PartnerSection = () => {
               ))}
             </div>
 
-            <button className="bg-brand-cream text-brand-green-dark text-lg px-12 py-5 rounded-2xl font-bold shadow-2xl hover:bg-white transition transform hover:scale-105">
+            <button 
+                onClick={openLeadForm}
+                className="bg-brand-cream text-brand-green-dark text-lg px-12 py-5 rounded-2xl font-bold shadow-2xl hover:bg-white transition transform hover:scale-105"
+            >
                <EditableText value={partner.buttonText} onSave={(val) => updateSection('partner', 'buttonText', val)} />
             </button>
             <p className="text-brand-green-light text-xs mt-6 opacity-70">

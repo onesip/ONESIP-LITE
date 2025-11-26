@@ -14,6 +14,7 @@ import { Footer } from './components/Footer';
 import { ChatWidget } from './components/ChatWidget';
 import { AdminDashboard } from './components/AdminDashboard';
 import { AdminLogin } from './components/AdminLogin';
+import { LeadFormModal } from './components/LeadFormModal';
 import { useContent } from './contexts/ContentContext';
 import { Save, LogOut, EyeOff, Loader2 } from 'lucide-react';
 
@@ -138,6 +139,7 @@ const App: React.FC = () => {
       <Footer onOpenAdmin={() => setShowLoginScreen(true)} />
       
       {!isAdmin && <ChatWidget />}
+      <LeadFormModal />
 
       {/* Modern Sync Overlay */}
       {isSyncing && (

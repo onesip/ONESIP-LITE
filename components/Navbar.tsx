@@ -11,7 +11,7 @@ interface NavbarProps {
 }
 
 export const Navbar: React.FC<NavbarProps> = ({ activeSection, scrollToSection, onOpenAdmin }) => {
-  const { content, isAdmin } = useContent();
+  const { content, isAdmin, openLeadForm } = useContent();
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
@@ -63,7 +63,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeSection, scrollToSection, 
 
           <div className="hidden md:flex items-center gap-3">
             <button
-              onClick={() => scrollToSection('contact')}
+              onClick={openLeadForm}
               className="bg-brand-green-medium text-white px-5 py-2 rounded-full font-bold text-xs hover:bg-brand-green-dark transition-all shadow-lg shadow-brand-green-medium/20 active:scale-95 transform"
             >
               立即加盟
@@ -104,8 +104,8 @@ export const Navbar: React.FC<NavbarProps> = ({ activeSection, scrollToSection, 
             ))}
              <button
               onClick={() => {
-                  scrollToSection('contact');
                   setIsOpen(false);
+                  openLeadForm();
               }}
               className="mt-8 bg-brand-green-medium text-white px-8 py-3 rounded-full font-bold text-lg shadow-xl"
             >
