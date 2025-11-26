@@ -39,6 +39,7 @@
               'float': 'float 6s ease-in-out infinite',
               'fade-in': 'fadeIn 0.5s ease-out forwards',
               'fade-in-up': 'fadeInUp 0.8s ease-out forwards',
+              'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
             },
             keyframes: {
               float: {
@@ -65,25 +66,25 @@
       }
     </script>
     <style>
+      /* CRITICAL: Force background immediately to avoid white flash */
       html, body {
         height: 100%;
         margin: 0;
-        background-color: #F5F5F7; /* iOS Background */
+        background-color: #F5F5F7 !important; 
         color: #1D1D1F;
         -webkit-font-smoothing: antialiased;
         -webkit-tap-highlight-color: transparent;
       }
       /* Custom Scrollbar */
-      ::-webkit-scrollbar { width: 0px; background: transparent; } /* Hidden scrollbar for app feel */
+      ::-webkit-scrollbar { width: 0px; background: transparent; }
       
       .glass-panel {
-        background: rgba(255, 255, 255, 0.75);
+        background: rgba(255, 255, 255, 0.85);
         backdrop-filter: blur(20px);
         -webkit-backdrop-filter: blur(20px);
         border-bottom: 0.5px solid rgba(0,0,0,0.05);
       }
       
-      /* Smooth Scrolling */
       html { scroll-behavior: smooth; }
     </style>
     

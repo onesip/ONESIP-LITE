@@ -68,11 +68,20 @@ const App: React.FC = () => {
 
   if (isLoading) {
     return (
-        <div className="h-screen w-full bg-brand-surface flex flex-col items-center justify-center gap-4">
-            <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center text-brand-green-medium shadow-app animate-bounce">
-                <LogoSymbol className="w-8 h-8"/>
+        <div className="fixed inset-0 z-[99999] bg-[#F5F5F7] flex flex-col items-center justify-center">
+            {/* Elegant Loading State */}
+            <div className="relative">
+                <div className="w-20 h-20 bg-white rounded-3xl flex items-center justify-center text-brand-green-medium shadow-[0_20px_40px_-10px_rgba(0,0,0,0.1)] animate-float">
+                    <LogoSymbol className="w-10 h-10"/>
+                </div>
+                <div className="absolute -bottom-12 left-0 w-full flex justify-center">
+                    <div className="flex gap-1.5">
+                        <div className="w-2 h-2 rounded-full bg-brand-green-medium/20 animate-bounce delay-0"></div>
+                        <div className="w-2 h-2 rounded-full bg-brand-green-medium/20 animate-bounce delay-150"></div>
+                        <div className="w-2 h-2 rounded-full bg-brand-green-medium/20 animate-bounce delay-300"></div>
+                    </div>
+                </div>
             </div>
-            <p className="text-brand-gray text-xs font-medium tracking-widest uppercase">Loading Onesip</p>
         </div>
     );
   }
@@ -136,7 +145,7 @@ const App: React.FC = () => {
 
       {/* Modern Sync Overlay */}
       {isSyncing && (
-          <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[10001] bg-white/90 backdrop-blur-md text-brand-dark px-5 py-2.5 rounded-full flex items-center gap-3 shadow-2xl animate-in slide-in-from-top-4 border border-black/5">
+          <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[10001] bg-white/80 backdrop-blur-xl text-brand-dark px-6 py-3 rounded-full flex items-center gap-3 shadow-[0_8px_30px_rgba(0,0,0,0.12)] animate-in slide-in-from-top-4 border border-white/20">
               <Loader2 size={16} className="animate-spin text-brand-green-medium"/>
               <span className="text-xs font-bold tracking-wide">同步云端数据中...</span>
           </div>
