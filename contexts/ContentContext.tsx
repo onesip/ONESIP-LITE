@@ -393,6 +393,15 @@ interface ContentContextType {
 
 const ContentContext = createContext<ContentContextType | undefined>(undefined);
 
+// Helper to safely access env vars to prevent crashes
+const getEnv = (key: string) => {
+  try {
+    return (typeof process !== 'undefined' && process.env && process.env[key]) || "";
+  } catch (e) {
+    return "";
+  }
+};
+
 export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [content, setContent] = useState<SiteContent>(defaultContent);
   const [cloudConfig, setCloudConfig] = useState<CloudConfig>({ enabled: false, binId: '', apiKey: '' });
@@ -418,10 +427,9 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
         }
       } 
       
-      // CRITICAL: If no local config (Visitor), check for Environment Variables
-      // This allows the public site to connect to the bin without user interaction
-      const envBinId = process.env.REACT_APP_CLOUD_BIN_ID || "";
-      const envApiKey = process.env.REACT_APP_CLOUD_API_KEY || "";
+      // CRITICAL: Safe Env Access
+      const envBinId = getEnv('REACT_APP_CLOUD_BIN_ID');
+      const envApiKey = getEnv('REACT_APP_CLOUD_API_KEY');
       
       if (!currentConfig.apiKey && envBinId && envApiKey) {
           currentConfig = {
