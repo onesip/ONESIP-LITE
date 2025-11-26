@@ -13,8 +13,21 @@ const migrateContent = (data: any): SiteContent => {
     const migrated = { ...defaultContent, ...data };
 
     const toLoc = (val: any, defZh: string, defEn: string): LocalizedText => {
-        if (typeof val === 'string') return { zh: val, en: val }; // Legacy string -> Dual
-        if (val && typeof val === 'object' && 'zh' in val) return val; // Already Localized
+        // Case 1: Legacy String
+        if (typeof val === 'string') {
+             // Smart Migration: If matches default Chinese, use default English
+             if (val === defZh) return { zh: val, en: defEn };
+             return { zh: val, en: val }; 
+        }
+        // Case 2: Already Object
+        if (val && typeof val === 'object' && 'zh' in val) {
+            // Auto-Heal: If English is identical to Chinese (bad migration) AND Chinese matches default, restore default English
+            if (val.zh === val.en && val.zh === defZh && defZh !== defEn) {
+                return { zh: val.zh, en: defEn };
+            }
+            return val;
+        }
+        // Case 3: Missing/Null
         return { zh: defZh, en: defEn };
     };
 
@@ -46,10 +59,10 @@ const migrateContent = (data: any): SiteContent => {
         migrated.model.title = toLoc(migrated.model.title, defaultContent.model.title.zh, defaultContent.model.title.en);
         migrated.model.description = toLoc(migrated.model.description, defaultContent.model.description.zh, defaultContent.model.description.en);
         if (migrated.model.items) {
-            migrated.model.items = migrated.model.items.map((item: any) => ({
+            migrated.model.items = migrated.model.items.map((item: any, i: number) => ({
                 ...item,
-                title: toLoc(item.title, "", ""),
-                desc: toLoc(item.desc, "", "")
+                title: toLoc(item.title, defaultContent.model.items[i]?.title.zh || "", defaultContent.model.items[i]?.title.en || ""),
+                desc: toLoc(item.desc, defaultContent.model.items[i]?.desc.zh || "", defaultContent.model.items[i]?.desc.en || "")
             }));
         }
     }
@@ -61,16 +74,19 @@ const migrateContent = (data: any): SiteContent => {
         p.title = toLoc(p.title, defaultContent.process.title.zh, defaultContent.process.title.en);
         p.description = toLoc(p.description, defaultContent.process.description.zh, defaultContent.process.description.en);
         if (p.phases) {
-            p.phases = p.phases.map((ph: any) => ({
-                ...ph,
-                title: toLoc(ph.title, "", ""),
-                subtitle: toLoc(ph.subtitle, "", ""),
-                badge: toLoc(ph.badge, "", ""),
-                benefitsTitle: toLoc(ph.benefitsTitle, "", ""),
-                benefits: (ph.benefits || []).map((b: any) => toLoc(b, "", "")),
-                obligationsTitle: toLoc(ph.obligationsTitle, "", ""),
-                obligations: (ph.obligations || []).map((o: any) => toLoc(o, "", ""))
-            }));
+            p.phases = p.phases.map((ph: any, i: number) => {
+                const defPh = defaultContent.process.phases[i] || defaultContent.process.phases[0];
+                return {
+                    ...ph,
+                    title: toLoc(ph.title, defPh.title.zh, defPh.title.en),
+                    subtitle: toLoc(ph.subtitle, defPh.subtitle.zh, defPh.subtitle.en),
+                    badge: toLoc(ph.badge, defPh.badge.zh, defPh.badge.en),
+                    benefitsTitle: toLoc(ph.benefitsTitle, defPh.benefitsTitle.zh, defPh.benefitsTitle.en),
+                    benefits: (ph.benefits || []).map((b: any, bi: number) => toLoc(b, defPh.benefits[bi]?.zh || "", defPh.benefits[bi]?.en || "")),
+                    obligationsTitle: toLoc(ph.obligationsTitle, defPh.obligationsTitle.zh, defPh.obligationsTitle.en),
+                    obligations: (ph.obligations || []).map((o: any, oi: number) => toLoc(o, defPh.obligations[oi]?.zh || "", defPh.obligations[oi]?.en || ""))
+                };
+            });
         }
     }
 
@@ -87,14 +103,20 @@ const migrateContent = (data: any): SiteContent => {
         c.note2 = toLoc(c.note2, defaultContent.comparison.note2.zh, defaultContent.comparison.note2.en);
 
         if (c.categories) {
-            c.categories = c.categories.map((cat: any) => ({
-                ...cat,
-                title: toLoc(cat.title, "Category", "Category"),
-                items: (cat.items || []).map((item: any) => ({
-                    ...item,
-                    name: toLoc(item.name, "Item", "Item")
-                }))
-            }));
+            c.categories = c.categories.map((cat: any, i: number) => {
+                const defCat = defaultContent.comparison.categories[i] || defaultContent.comparison.categories[0];
+                return {
+                    ...cat,
+                    title: toLoc(cat.title, defCat.title.zh, defCat.title.en),
+                    items: (cat.items || []).map((item: any, ii: number) => {
+                        const defItem = defCat.items[ii] || { name: { zh: "Item", en: "Item" } };
+                        return {
+                            ...item,
+                            name: toLoc(item.name, defItem.name.zh, defItem.name.en)
+                        }
+                    })
+                }
+            });
         }
     }
 
@@ -105,14 +127,17 @@ const migrateContent = (data: any): SiteContent => {
         s.title = toLoc(s.title, defaultContent.showcase.title.zh, defaultContent.showcase.title.en);
         s.description = toLoc(s.description, defaultContent.showcase.description.zh, defaultContent.showcase.description.en);
         if (s.items) {
-             s.items = s.items.map((item: any) => ({
-                 ...item,
-                 title: toLoc(item.title, "", ""),
-                 desc: toLoc(item.desc, "", ""),
-                 tag: toLoc(item.tag, "", ""),
-                 statValue: toLoc(item.statValue, "", ""),
-                 statLabel: toLoc(item.statLabel, "", "")
-             }));
+             s.items = s.items.map((item: any, i: number) => {
+                 const defItem = defaultContent.showcase.items[i] || defaultContent.showcase.items[0];
+                 return {
+                     ...item,
+                     title: toLoc(item.title, defItem.title.zh, defItem.title.en),
+                     desc: toLoc(item.desc, defItem.desc.zh, defItem.desc.en),
+                     tag: toLoc(item.tag, defItem.tag.zh, defItem.tag.en),
+                     statValue: toLoc(item.statValue, defItem.statValue.zh, defItem.statValue.en),
+                     statLabel: toLoc(item.statLabel, defItem.statLabel.zh, defItem.statLabel.en)
+                 };
+             });
         }
     }
 
@@ -123,11 +148,14 @@ const migrateContent = (data: any): SiteContent => {
          f.title = toLoc(f.title, defaultContent.faq.title.zh, defaultContent.faq.title.en);
          f.description = toLoc(f.description, defaultContent.faq.description.zh, defaultContent.faq.description.en);
          if (f.items) {
-             f.items = f.items.map((item: any) => ({
-                 ...item,
-                 question: toLoc(item.question, "", ""),
-                 answer: toLoc(item.answer, "", "")
-             }));
+             f.items = f.items.map((item: any, i: number) => {
+                 const defItem = defaultContent.faq.items[i] || defaultContent.faq.items[0];
+                 return {
+                     ...item,
+                     question: toLoc(item.question, defItem.question.zh, defItem.question.en),
+                     answer: toLoc(item.answer, defItem.answer.zh, defItem.answer.en)
+                 }
+             });
          }
     }
 
@@ -146,11 +174,14 @@ const migrateContent = (data: any): SiteContent => {
          p.buttonText = toLoc(p.buttonText, defaultContent.partner.buttonText.zh, defaultContent.partner.buttonText.en);
          p.disclaimer = toLoc(p.disclaimer, defaultContent.partner.disclaimer.zh, defaultContent.partner.disclaimer.en);
          if (p.items) {
-             p.items = p.items.map((item: any) => ({
-                 ...item,
-                 title: toLoc(item.title, "", ""),
-                 desc: toLoc(item.desc, "", "")
-             }));
+             p.items = p.items.map((item: any, i: number) => {
+                 const defItem = defaultContent.partner.items[i] || defaultContent.partner.items[0];
+                 return {
+                     ...item,
+                     title: toLoc(item.title, defItem.title.zh, defItem.title.en),
+                     desc: toLoc(item.desc, defItem.desc.zh, defItem.desc.en)
+                 }
+             });
          }
     }
 
@@ -180,12 +211,15 @@ const migrateContent = (data: any): SiteContent => {
         f.aiButtonLoading = toLoc(f.aiButtonLoading, "Loading...", "Loading...");
 
         if (f.models) {
-            f.models = f.models.map((m: any) => ({
-                ...m,
-                name: toLoc(m.name, m.name || "", m.name || ""),
-                pros: (m.pros || []).map((p: any) => toLoc(p, "", "")),
-                cons: (m.cons || []).map((c: any) => toLoc(c, "", ""))
-            }));
+            f.models = f.models.map((m: any, i: number) => {
+                const defModel = defaultContent.financials.models[i] || defaultContent.financials.models[0];
+                return {
+                    ...m,
+                    name: toLoc(m.name, defModel.name.zh, defModel.name.en),
+                    pros: (m.pros || []).map((p: any, pi: number) => toLoc(p, defModel.pros[pi]?.zh || "", defModel.pros[pi]?.en || "")),
+                    cons: (m.cons || []).map((c: any, ci: number) => toLoc(c, defModel.cons[ci]?.zh || "", defModel.cons[ci]?.en || ""))
+                }
+            });
         }
     }
 

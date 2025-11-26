@@ -114,15 +114,23 @@ export const ProcessSection = () => {
                              
                              {idx === 0 && (
                                  <div className="mt-12 p-4 bg-brand-green-dark text-white rounded-xl text-xs leading-relaxed shadow-lg">
-                                     <p className="font-bold mb-1">💡 为什么我们敢免费提供设备？</p>
-                                     <p className="opacity-90">因为我们对 ONESIP 的产品力有绝对信心。试运行期是双方建立信任的最佳窗口。</p>
+                                     <p className="font-bold mb-1">
+                                         {language === 'zh' ? '💡 为什么我们敢免费提供设备？' : '💡 Why free equipment?'}
+                                     </p>
+                                     <p className="opacity-90">
+                                         {language === 'zh' ? '因为我们对 ONESIP 的产品力有绝对信心。试运行期是双方建立信任的最佳窗口。' : 'Because we trust our product. The trial period is the best way to build mutual trust.'}
+                                     </p>
                                  </div>
                              )}
                              
                               {idx === 2 && (
                                  <div className="mt-12 p-4 bg-red-50 text-red-900 border border-red-200 rounded-xl text-xs leading-relaxed">
-                                     <p className="font-bold mb-1">🛡️ 退出机制说明</p>
-                                     <p className="opacity-90">我们承诺不设任何隐形门槛。生意有风险，我们愿意共同分担，但诚信是合作的基石。</p>
+                                     <p className="font-bold mb-1">
+                                         {language === 'zh' ? '🛡️ 退出机制说明' : '🛡️ Exit Policy'}
+                                     </p>
+                                     <p className="opacity-90">
+                                         {language === 'zh' ? '我们承诺不设任何隐形门槛。生意有风险，我们愿意共同分担，但诚信是合作的基石。' : 'No hidden barriers. Business has risks, and we share them, but integrity is key.'}
+                                     </p>
                                  </div>
                              )}
                          </div>

@@ -1,11 +1,10 @@
-
 import React, { useState } from 'react';
 import { useContent } from '../contexts/ContentContext';
 import { X, Send, MapPin, Store, User, Phone, MessageSquare, CheckCircle2 } from 'lucide-react';
 import { LogoSymbol } from './BrandLogo';
 
 export const LeadFormModal = () => {
-  const { isLeadFormOpen, closeLeadForm, submitLead } = useContent();
+  const { isLeadFormOpen, closeLeadForm, submitLead, language } = useContent();
   const [step, setStep] = useState<'form' | 'success'>('form');
   const [formData, setFormData] = useState({
     name: '',
@@ -63,8 +62,12 @@ export const LeadFormModal = () => {
                     <LogoSymbol className="w-6 h-6"/>
                 </div>
                 <div>
-                    <h3 className="text-white font-bold text-lg">申请加盟咨询</h3>
-                    <p className="text-brand-green-light/70 text-xs">ONESIP 招商顾问将为您提供 1v1 服务</p>
+                    <h3 className="text-white font-bold text-lg">
+                        {language === 'zh' ? '申请加盟咨询' : 'Partnership Inquiry'}
+                    </h3>
+                    <p className="text-brand-green-light/70 text-xs">
+                        {language === 'zh' ? 'ONESIP 招商顾问将为您提供 1v1 服务' : '1-on-1 consultation with our advisor'}
+                    </p>
                 </div>
             </div>
             
@@ -80,7 +83,9 @@ export const LeadFormModal = () => {
                     
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-1">
-                            <label className="text-xs font-bold text-gray-500 uppercase">您的称呼</label>
+                            <label className="text-xs font-bold text-gray-500 uppercase">
+                                {language === 'zh' ? '您的称呼' : 'Name'}
+                            </label>
                             <div className="relative">
                                 <User size={16} className="absolute left-3 top-3.5 text-gray-400"/>
                                 <input 
@@ -88,12 +93,14 @@ export const LeadFormModal = () => {
                                     value={formData.name}
                                     onChange={e => setFormData({...formData, name: e.target.value})}
                                     className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-9 pr-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-green-medium/20 focus:border-brand-green-medium transition-all"
-                                    placeholder="姓名"
+                                    placeholder={language === 'zh' ? "姓名" : "Your Name"}
                                 />
                             </div>
                         </div>
                         <div className="space-y-1">
-                            <label className="text-xs font-bold text-gray-500 uppercase">所在城市</label>
+                            <label className="text-xs font-bold text-gray-500 uppercase">
+                                {language === 'zh' ? '所在城市' : 'City'}
+                            </label>
                             <div className="relative">
                                 <MapPin size={16} className="absolute left-3 top-3.5 text-gray-400"/>
                                 <input 
@@ -101,14 +108,16 @@ export const LeadFormModal = () => {
                                     value={formData.city}
                                     onChange={e => setFormData({...formData, city: e.target.value})}
                                     className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-9 pr-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-green-medium/20 focus:border-brand-green-medium transition-all"
-                                    placeholder="例如: Rotterdam"
+                                    placeholder={language === 'zh' ? "例如: Rotterdam" : "e.g., Rotterdam"}
                                 />
                             </div>
                         </div>
                     </div>
 
                     <div className="space-y-1">
-                        <label className="text-xs font-bold text-gray-500 uppercase">联系方式 (电话/微信)</label>
+                        <label className="text-xs font-bold text-gray-500 uppercase">
+                            {language === 'zh' ? '联系方式 (电话/微信)' : 'Contact (Phone/WeChat)'}
+                        </label>
                         <div className="relative">
                             <Phone size={16} className="absolute left-3 top-3.5 text-gray-400"/>
                             <input 
@@ -122,7 +131,9 @@ export const LeadFormModal = () => {
                     </div>
 
                     <div className="space-y-1">
-                        <label className="text-xs font-bold text-gray-500 uppercase">现有店铺类型</label>
+                        <label className="text-xs font-bold text-gray-500 uppercase">
+                            {language === 'zh' ? '现有店铺类型' : 'Business Type'}
+                        </label>
                         <div className="relative">
                             <Store size={16} className="absolute left-3 top-3.5 text-gray-400"/>
                             <select 
@@ -130,24 +141,26 @@ export const LeadFormModal = () => {
                                 onChange={e => setFormData({...formData, businessType: e.target.value})}
                                 className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-9 pr-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-green-medium/20 focus:border-brand-green-medium transition-all appearance-none"
                             >
-                                <option>餐厅 / 食堂 (Restaurant)</option>
-                                <option>零售 / 超市 (Retail/Market)</option>
-                                <option>咖啡 / 烘焙 (Cafe/Bakery)</option>
-                                <option>其他业态 (Other)</option>
-                                <option>尚未开店 (Planning)</option>
+                                <option>Restaurant/Bar (餐厅/食堂)</option>
+                                <option>Retail/Market (零售/超市)</option>
+                                <option>Cafe/Bakery (咖啡/烘焙)</option>
+                                <option>Other (其他业态)</option>
+                                <option>Planning (尚未开店)</option>
                             </select>
                         </div>
                     </div>
 
                     <div className="space-y-1">
-                        <label className="text-xs font-bold text-gray-500 uppercase">您的问题或备注 (选填)</label>
+                        <label className="text-xs font-bold text-gray-500 uppercase">
+                            {language === 'zh' ? '您的问题或备注 (选填)' : 'Message (Optional)'}
+                        </label>
                         <div className="relative">
                             <MessageSquare size={16} className="absolute left-3 top-3.5 text-gray-400"/>
                             <textarea 
                                 value={formData.message}
                                 onChange={e => setFormData({...formData, message: e.target.value})}
                                 className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-9 pr-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-green-medium/20 focus:border-brand-green-medium transition-all min-h-[80px]"
-                                placeholder="例如：我想了解具体的设备尺寸..."
+                                placeholder={language === 'zh' ? "例如：我想了解具体的设备尺寸..." : "e.g., questions about machine size..."}
                             />
                         </div>
                     </div>
@@ -158,16 +171,16 @@ export const LeadFormModal = () => {
                         className="w-full bg-brand-green-medium hover:bg-brand-green-dark text-white font-bold py-4 rounded-xl shadow-lg hover:shadow-brand-green-medium/30 transition-all flex items-center justify-center gap-2 mt-4 disabled:opacity-70"
                     >
                         {isSubmitting ? (
-                            <span className="animate-pulse">提交中...</span>
+                            <span className="animate-pulse">{language === 'zh' ? '提交中...' : 'Sending...'}</span>
                         ) : (
                             <>
-                                提交申请 <Send size={18} />
+                                {language === 'zh' ? '提交申请' : 'Submit Inquiry'} <Send size={18} />
                             </>
                         )}
                     </button>
                     
                     <p className="text-[10px] text-center text-gray-400 mt-4">
-                        *您的信息仅用于商务联系，严格保密。
+                        {language === 'zh' ? '*您的信息仅用于商务联系，严格保密。' : '*Your info is kept confidential.'}
                     </p>
 
                 </form>
@@ -176,15 +189,17 @@ export const LeadFormModal = () => {
                     <div className="w-20 h-20 bg-green-100 text-brand-green-medium rounded-full flex items-center justify-center mb-6 shadow-xl">
                         <CheckCircle2 size={40} />
                     </div>
-                    <h3 className="text-2xl font-black text-brand-dark mb-2">申请已提交！</h3>
+                    <h3 className="text-2xl font-black text-brand-dark mb-2">
+                        {language === 'zh' ? '申请已提交！' : 'Sent Successfully!'}
+                    </h3>
                     <p className="text-gray-500 text-center max-w-xs mb-8">
-                        感谢您的信任。ONESIP 招商顾问将在 24 小时内通过电话或微信与您联系。
+                        {language === 'zh' ? '感谢您的信任。ONESIP 招商顾问将在 24 小时内通过电话或微信与您联系。' : 'Thank you. Our advisor will contact you within 24 hours.'}
                     </p>
                     <button 
                         onClick={handleClose}
                         className="bg-gray-100 text-brand-dark font-bold px-8 py-3 rounded-xl hover:bg-gray-200 transition-colors"
                     >
-                        关闭窗口
+                        {language === 'zh' ? '关闭窗口' : 'Close'}
                     </button>
                 </div>
             )}

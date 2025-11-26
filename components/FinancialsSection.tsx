@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, ResponsiveContainer, Cell, XAxis, Tooltip } from 'recharts';
 import { Bot, TrendingUp, DollarSign, Activity, AlertCircle, ChevronDown, ChevronUp, Check, X } from 'lucide-react';
@@ -164,7 +163,7 @@ export const FinancialsSection = () => {
                             <EditableText value={financials.labelSales[language]} onSave={(val) => updateSection('financials', 'labelSales', val)} />
                         </label>
                         <div className="text-3xl font-mono font-bold text-brand-green-medium">
-                            {dailyCups} <span className="text-sm text-gray-500">cups/day</span>
+                            {dailyCups} <span className="text-sm text-gray-500">{language === 'zh' ? '杯/天' : 'cups/day'}</span>
                         </div>
                     </div>
                     <input 
@@ -193,7 +192,7 @@ export const FinancialsSection = () => {
                             <Tooltip 
                                 cursor={{fill: 'rgba(255,255,255,0.05)'}}
                                 contentStyle={{backgroundColor: '#000', border: '1px solid #333', borderRadius: '8px', color: '#fff'}}
-                                formatter={(value: number) => [`€${value.toLocaleString()}`, 'Net Profit']}
+                                formatter={(value: number) => [`€${value.toLocaleString()}`, language === 'zh' ? '净利润' : 'Net Profit']}
                             />
                             <Bar dataKey="profit" radius={[6, 6, 6, 6]}>
                                 {chartData.map((entry, index) => (

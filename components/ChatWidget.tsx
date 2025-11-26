@@ -1,11 +1,12 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { useChat } from '../contexts/ChatContext';
 import { MessageCircle, X, Send, Bot, User } from 'lucide-react';
 import { LogoSymbol } from './BrandLogo';
+import { useContent } from '../contexts/ContentContext';
 
 export const ChatWidget = () => {
   const { isOpen, toggleChat, messages, sendMessage, isTyping, unreadCount } = useChat();
+  const { language } = useContent();
   const [inputValue, setInputValue] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -41,10 +42,14 @@ export const ChatWidget = () => {
                  <LogoSymbol className="w-5 h-5" />
               </div>
               <div>
-                 <h3 className="text-white font-bold text-sm">ONESIP 助手</h3>
+                 <h3 className="text-white font-bold text-sm">
+                     {language === 'zh' ? 'ONESIP 助手' : 'ONESIP Assistant'}
+                 </h3>
                  <div className="flex items-center gap-1.5 mt-0.5">
                     <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></span>
-                    <span className="text-brand-green-light text-[10px]">在线 · 自动回复中</span>
+                    <span className="text-brand-green-light text-[10px]">
+                        {language === 'zh' ? '在线 · 自动回复中' : 'Online · Auto-reply'}
+                    </span>
                  </div>
               </div>
            </div>
@@ -61,7 +66,7 @@ export const ChatWidget = () => {
                 {/* Avatar */}
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 border 
                    ${msg.sender === 'user' ? 'bg-brand-cream border-brand-green-dark/10' : 'bg-brand-green-dark border-transparent text-white'}`}>
-                   {msg.sender === 'user' ? <User size={14} className="text-brand-dark"/> : (msg.sender === 'admin' ? <span className="text-[10px] font-bold">人工</span> : <Bot size={14}/>)}
+                   {msg.sender === 'user' ? <User size={14} className="text-brand-dark"/> : (msg.sender === 'admin' ? <span className="text-[10px] font-bold">{language === 'zh' ? '人工' : 'Staff'}</span> : <Bot size={14}/>)}
                 </div>
 
                 {/* Bubble */}
@@ -101,7 +106,7 @@ export const ChatWidget = () => {
               <input 
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
-                placeholder="输入您的问题..." 
+                placeholder={language === 'zh' ? "输入您的问题..." : "Type your question..."}
                 className="w-full bg-brand-cream/50 border border-brand-green-dark/10 rounded-xl pl-4 pr-12 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-green-dark/10 transition-all placeholder:text-brand-green-medium/50"
               />
               <button 
@@ -134,7 +139,7 @@ export const ChatWidget = () => {
         {/* Hover Label */}
         {!isOpen && (
            <span className="absolute right-16 bg-white text-brand-dark text-xs font-bold px-3 py-1.5 rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-             咨询加盟顾问
+             {language === 'zh' ? '咨询加盟顾问' : 'Talk to us'}
            </span>
         )}
       </button>

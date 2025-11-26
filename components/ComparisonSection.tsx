@@ -18,7 +18,7 @@ export const ComparisonSection = () => {
   // Modern DIY Icon
   const IconDIY = () => (
       <span className="text-[10px] font-bold px-2 py-1 bg-gray-100 rounded text-gray-600 border border-gray-200">
-          自备
+          {language === 'zh' ? '自备' : 'Self-prep'}
       </span>
   );
 
@@ -62,7 +62,9 @@ export const ComparisonSection = () => {
                             <span className="text-lg font-black text-brand-dark block">
                                 <EditableText value={comparison.col2Title[language]} onSave={(val) => updateSection('comparison', 'col2Title', val)} />
                             </span>
-                            <span className="text-[10px] font-bold text-brand-green-medium uppercase tracking-wider">Recommended</span>
+                            <span className="text-[10px] font-bold text-brand-green-medium uppercase tracking-wider">
+                                {language === 'zh' ? '推荐' : 'Recommended'}
+                            </span>
                         </div>
                         <div className="col-span-2 text-center pb-4">
                             <span className="text-sm font-bold text-gray-600">
@@ -118,7 +120,7 @@ export const ComparisonSection = () => {
                                             <div className="col-span-2 flex justify-center">
                                                 {item.self ? (
                                                     (itemNameZh.includes("机器") || itemNameZh.includes("机") || itemNameZh.includes("Machine")) 
-                                                        ? <span className="text-[10px] text-gray-500 font-medium">需购买</span> 
+                                                        ? <span className="text-[10px] text-gray-500 font-medium">{language === 'zh' ? '需购买' : 'Purchase'}</span> 
                                                         : <IconCheck />
                                                 ) : <Minus size={14} className="text-gray-300"/>}
                                             </div>
