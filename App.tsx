@@ -15,7 +15,7 @@ import { ChatWidget } from './components/ChatWidget';
 import { AdminDashboard } from './components/AdminDashboard';
 import { AdminLogin } from './components/AdminLogin';
 import { useContent } from './contexts/ContentContext';
-import { Save, LogOut, EyeOff, Loader2 } from 'lucide-react';
+import { Save, LogOut, EyeOff, Loader2, Cloud, HardDrive, AlertCircle, Wifi } from 'lucide-react';
 import { LogoSymbol } from './components/BrandLogo';
 
 // Wrapper component to handle visibility logic
@@ -33,6 +33,29 @@ const SectionWrapper = ({ isVisible, isAdmin, children }: { isVisible: boolean, 
                 </div>
             )}
             {children}
+        </div>
+    );
+};
+
+// Floating Status Indicator (To ensure user sees it)
+const ConnectionStatusPill = () => {
+    const { dataSource } = useContent();
+    
+    // Don't show if cloud synced to keep UI clean, OR show small dot?
+    // User requested to see it, so we show it always for now.
+    
+    return (
+        <div className="fixed bottom-6 left-6 z-[9900] pointer-events-none opacity-80 hover:opacity-100 transition-opacity">
+            <div className={`
+                flex items-center gap-2 px-3 py-1.5 rounded-full backdrop-blur-md border shadow-lg text-[10px] font-bold uppercase tracking-wider
+                ${dataSource === 'cloud' ? 'bg-green-500/10 border-green-500/20 text-green-700' : ''}
+                ${dataSource === 'local' ? 'bg-orange-500/10 border-orange-500/20 text-orange-700' : ''}
+                ${dataSource === 'default' ? 'bg-red-500/10 border-red-500/20 text-red-600' : ''}
+            `}>
+                {dataSource === 'cloud' && <><Cloud size={12} /> Cloud Synced</>}
+                {dataSource === 'local' && <><HardDrive size={12} /> Local / Admin</>}
+                {dataSource === 'default' && <><Wifi size={12} className="opacity-50"/> Offline Mode</>}
+            </div>
         </div>
     );
 };
@@ -100,6 +123,10 @@ const App: React.FC = () => {
         scrollToSection={scrollToSection} 
         onOpenAdmin={() => setShowLoginScreen(true)}
       />
+      
+      {/* FORCE VISIBLE STATUS INDICATOR */}
+      <ConnectionStatusPill />
+
       <Hero scrollToSection={scrollToSection} />
       
       <SectionWrapper isVisible={content.model.isVisible} isAdmin={isAdmin}>
