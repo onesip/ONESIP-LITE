@@ -13,7 +13,8 @@ const defaultContent: SiteContent = {
     subtitle: "0 房租 · 100% 自动化",
     description: "在原有门店中多出一个具有品牌力的店中店。这不仅仅是增加一款奶茶产品，而是为您引入一个成熟的自动化奶茶品牌体系。",
     buttonText: "测算我的收益",
-    trustText: "欧洲 100+ 合作伙伴信赖"
+    trustText: "欧洲 100+ 合作伙伴信赖",
+    image: "https://images.unsplash.com/photo-1595981267035-7b04ca84a82d?auto=format&fit=crop&w=600&q=80"
   },
   model: {
     isVisible: true,
@@ -361,7 +362,8 @@ const defaultContent: SiteContent = {
     address: "Rotterdam, Netherlands",
     resourceTitle: "资源下载",
     copyright: "© 2025 ONESIP B.V."
-  }
+  },
+  library: []
 };
 
 interface ContentContextType {
@@ -389,6 +391,8 @@ interface ContentContextType {
   updateFinancialModelDetail: (modelIndex: number, type: 'pros' | 'cons', detailIndex: number, value: string) => void;
   updateProcessPhase: (index: number, field: keyof ProcessPhase, value: any) => void;
   updateProcessPhaseDetail: (phaseIndex: number, type: 'benefits' | 'obligations', detailIndex: number, value: string) => void;
+  addToLibrary: (url: string) => void;
+  removeFromLibrary: (url: string) => void;
   saveChanges: () => void;
   resetContent: () => void;
 }
@@ -452,11 +456,13 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
                     setContent(prev => ({
                         ...defaultContent,
                         ...cloudData,
+                            hero: { ...defaultContent.hero, ...cloudData.hero }, // Merge hero defaults
                             process: { ...defaultContent.process, ...cloudData.process, phases: cloudData.process?.phases || defaultContent.process.phases },
                             financials: { ...defaultContent.financials, ...cloudData.financials, models: cloudData.financials?.models || defaultContent.financials.models },
                             comparison: cloudData.comparison || defaultContent.comparison,
                             showcase: cloudData.showcase || defaultContent.showcase,
-                            faq: cloudData.faq || defaultContent.faq
+                            faq: cloudData.faq || defaultContent.faq,
+                            library: cloudData.library || []
                     }));
                     setDataSource('cloud');
                     setIsLoading(false);
@@ -476,11 +482,13 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
                 setContent(prev => ({
                     ...defaultContent,
                     ...parsed,
+                    hero: { ...defaultContent.hero, ...parsed.hero },
                     process: { ...defaultContent.process, ...parsed.process, phases: parsed.process?.phases || defaultContent.process.phases },
                     financials: { ...defaultContent.financials, ...parsed.financials, models: parsed.financials?.models || defaultContent.financials.models },
                     comparison: parsed.comparison || defaultContent.comparison,
                     showcase: parsed.showcase || defaultContent.showcase,
-                    faq: parsed.faq || defaultContent.faq
+                    faq: parsed.faq || defaultContent.faq,
+                    library: parsed.library || []
                 }));
                 setDataSource('local');
             } catch (e) {}
@@ -604,6 +612,19 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
           return { ...prev, process: { ...prev.process, phases: newPhases } };
       });
   };
+  
+  const addToLibrary = (url: string) => {
+    setContent(prev => ({ ...prev, library: [url, ...(prev.library || [])] }));
+  };
+  
+  const removeFromLibrary = (url: string) => {
+      if (confirm("确定要删除这张图片吗？")) {
+         setContent(prev => {
+             const newLibrary = (prev.library || []).filter(i => i !== url);
+             return { ...prev, library: newLibrary };
+         });
+      }
+  };
 
   // --- Save Logic ---
   const saveChanges = async () => {
@@ -667,6 +688,8 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
       updateFinancialModelDetail,
       updateProcessPhase,
       updateProcessPhaseDetail,
+      addToLibrary,
+      removeFromLibrary,
       saveChanges, 
       resetContent 
     }}>

@@ -1,89 +1,121 @@
 
 import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, ResponsiveContainer, Cell, XAxis, Tooltip } from 'recharts';
-import { Bot, CheckCircle2, XCircle, AlertOctagon, TrendingUp } from 'lucide-react';
+import { Bot, TrendingUp, DollarSign, Activity, AlertCircle, ChevronDown, ChevronUp, Check, X } from 'lucide-react';
 import { analyzeProfitability } from '../services/geminiService';
 import { useContent } from '../contexts/ContentContext';
 import { EditableText } from './ui/Editable';
 
-interface ModelData {
+interface DetailedModelData {
   revenue: number;
-  materials: number;
-  labor: number;
-  rent: number;
-  equip: number;
-  misc: number;
+  costMaterials: number;
+  costLabor: number;
+  costRent: number;
+  costEquip: number; // Includes Brand Fee or Equipment Installment
+  costMisc: number;
+  totalCost: number;
   profit: number;
-  isCapped: boolean;
 }
 
 export const FinancialsSection = () => {
   const { content, updateSection, updateFinancialModel, updateFinancialModelDetail } = useContent();
   const { financials } = content;
-  const { models } = financials; // Use models from content, not local constant
+  const { models } = financials;
 
   const [dailyCups, setDailyCups] = useState(60);
-  const [expandedCard, setExpandedCard] = useState<string | null>(null);
+  const [activeModelId, setActiveModelId] = useState<string>('D'); // Default to ONESIP
   const [chartData, setChartData] = useState<any[]>([]);
   const [aiAnalysis, setAiAnalysis] = useState("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   const daysPerMonth = 30;
 
-  // Calculation logic remains hardcoded as it is business logic, but it maps via ID
-  const getModelData = (modelId: string): ModelData => {
-    const cups = dailyCups;
-    if (modelId === 'A') { 
-        const price = 5.0;
-        const cap = 45;
-        const effectiveCups = Math.min(cups, cap);
-        const revenue = effectiveCups * daysPerMonth * price;
-        const materials = effectiveCups * daysPerMonth * 1.1;
-        const labor = 2250; 
-        const profit = revenue - materials - labor;
-        return { revenue, materials, labor, rent: 0, equip: 0, misc: 0, profit, isCapped: cups > cap };
-    }
-    if (modelId === 'B') { 
-        const price = 5.0;
-        const cap = 60;
-        const effectiveCups = Math.min(cups, cap);
-        const revenue = effectiveCups * daysPerMonth * price;
-        const materials = effectiveCups * daysPerMonth * 1.1;
-        const labor = 1125; 
-        const equip = 450;
-        const profit = revenue - materials - labor - equip;
-        return { revenue, materials, labor, rent: 0, equip, misc: 0, profit, isCapped: cups > cap };
-    }
-    if (modelId === 'C') { 
-        const price = 6.0;
-        const revenue = cups * daysPerMonth * price;
-        const materials = cups * daysPerMonth * 1.0; 
-        const labor = 9000; 
-        const rent = 2500;
-        const misc = 1000;
-        const profit = revenue - materials - labor - rent - misc;
-        return { revenue, materials, labor, rent, equip: 0, misc, profit, isCapped: false };
-    }
-    if (modelId === 'D') { 
-        const price = 5.0;
-        const revenue = cups * daysPerMonth * price;
-        const materials = cups * daysPerMonth * 1.1;
-        let labor = 0;
-        if (cups > 30) labor = 1500;
-        if (cups > 70) labor = 3000;
-        const equip = 899 + (revenue * 0.07);
-        const profit = revenue - materials - labor - equip;
-        return { revenue, materials, labor, rent: 0, equip, misc: 0, profit, isCapped: false };
-    }
-    return { revenue: 0, materials: 0, labor: 0, rent: 0, equip: 0, misc: 0, profit: 0, isCapped: false };
+  // --- Comprehensive Calculation Logic for EACH Model ---
+  const calculateDetails = (modelId: string, cups: number): DetailedModelData => {
+      let price = 5.0; // Avg price
+      let revenue = 0;
+      let costMaterials = 0;
+      let costLabor = 0;
+      let costRent = 0;
+      let costEquip = 0;
+      let costMisc = 0;
+
+      // Model A: DIY (Cheap start, unstable, hidden labor)
+      if (modelId === 'A') {
+          price = 5.0;
+          // Cap efficiency at 45 cups/day manually
+          const effectiveCups = Math.min(cups, 45);
+          revenue = effectiveCups * daysPerMonth * price;
+          
+          costMaterials = revenue * 0.35; // Higher waste
+          costLabor = 2500; // Full time staff needed for manual work
+          costRent = 0; // Existing space
+          costEquip = 100; // Minimal maintenance
+          costMisc = 200;
+      }
+      // Model B: Rental Machine (Simple, no brand, fixed rent)
+      else if (modelId === 'B') {
+          price = 4.5; // Lower perceive value
+          const effectiveCups = Math.min(cups, 60);
+          revenue = effectiveCups * daysPerMonth * price;
+
+          costMaterials = revenue * 0.30;
+          costLabor = 1200; // Part time
+          costRent = 0;
+          costEquip = 650; // Fixed Rental Fee
+          costMisc = 200;
+      }
+      // Model C: Traditional Franchise Store (High Cap, High Cost)
+      else if (modelId === 'C') {
+          price = 6.0; // Premium
+          revenue = cups * daysPerMonth * price;
+
+          costMaterials = revenue * 0.25; // Bulk buying
+          costLabor = 5000; // 2 Full time + 1 Part time
+          costRent = 2500; // Dedicated space
+          costEquip = 800; // Depreciation
+          costMisc = 1000; // Utilities, Marketing
+      }
+      // Model D: ONESIP LITE (Automated, Rev Share)
+      else if (modelId === 'D') {
+          price = 5.0;
+          revenue = cups * daysPerMonth * price;
+
+          costMaterials = revenue * 0.28; // Competitive supply chain
+          // Elastic Labor: 0 if low volume (staff idle time), small if high volume
+          if (cups < 30) costLabor = 0;
+          else if (cups < 80) costLabor = 900;
+          else costLabor = 1800;
+
+          costRent = 0;
+          // 899 System Fee + 7% Brand Fee
+          costEquip = 899 + (revenue * 0.07); 
+          costMisc = 100;
+      }
+
+      const totalCost = costMaterials + costLabor + costRent + costEquip + costMisc;
+      return {
+          revenue,
+          costMaterials,
+          costLabor,
+          costRent,
+          costEquip,
+          costMisc,
+          totalCost,
+          profit: revenue - totalCost
+      };
   };
 
+  // Update Chart Data on slider change
   useEffect(() => {
-    const data = models.map(m => ({
-      name: m.name,
-      profit: getModelData(m.id).profit,
-      id: m.id
-    }));
+    const data = models.map(m => {
+        const details = calculateDetails(m.id, dailyCups);
+        return {
+            name: m.name,
+            profit: details.profit,
+            id: m.id
+        };
+    });
     setChartData(data);
   }, [dailyCups, models]);
 
@@ -94,298 +126,239 @@ export const FinancialsSection = () => {
     setIsAnalyzing(false);
   };
 
-  const onesipData = getModelData('D');
-  const lowSalesWarning = dailyCups < 25;
+  const onesipData = calculateDetails('D', dailyCups);
+  const activeModelData = calculateDetails(activeModelId, dailyCups);
+  const activeModelInfo = models.find(m => m.id === activeModelId);
 
   return (
-    <div id="financials" className="py-32 bg-brand-green-dark text-white relative overflow-hidden">
-      {/* Background Texture */}
-      <div className="absolute inset-0 opacity-5" style={{backgroundImage: 'radial-gradient(#929E95 1px, transparent 1px)', backgroundSize: '30px 30px'}}></div>
+    <div id="financials" className="py-24 md:py-32 bg-[#0A0A0A] text-white relative overflow-hidden">
       
+      {/* Background Gradients */}
+      <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
+          <div className="absolute top-[-10%] right-[-10%] w-[50%] h-[50%] bg-brand-green-dark/20 rounded-full blur-[100px]"></div>
+          <div className="absolute bottom-[-10%] left-[-10%] w-[50%] h-[50%] bg-blue-900/10 rounded-full blur-[100px]"></div>
+      </div>
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+        
+        {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-end mb-16 gap-8">
             <div>
-                <span className="text-brand-green-light font-bold tracking-widest text-xs uppercase mb-3 block">
+                <span className="text-brand-green-medium font-bold tracking-widest text-xs uppercase mb-3 block opacity-80">
                     <EditableText value={financials.tagline} onSave={(val) => updateSection('financials', 'tagline', val)} />
                 </span>
-                <h2 className="text-4xl md:text-5xl font-black text-brand-cream leading-tight">
+                <h2 className="text-4xl md:text-5xl font-black text-white leading-tight">
                     <EditableText value={financials.title} onSave={(val) => updateSection('financials', 'title', val)} />
                 </h2>
             </div>
-            <div className="text-brand-green-light/80 max-w-md text-right md:text-left text-sm font-light">
+            <div className="text-gray-400 max-w-md text-sm font-normal leading-relaxed">
                 <EditableText value={financials.description} onSave={(val) => updateSection('financials', 'description', val)} multiline />
-                <br/>
-                <span className="text-white font-medium">
-                    <EditableText value={financials.disclaimer} onSave={(val) => updateSection('financials', 'disclaimer', val)} />
-                </span>
             </div>
         </div>
 
-        <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-[48px] p-8 md:p-12 shadow-2xl ring-1 ring-white/5">
-          <div className="flex flex-col lg:flex-row gap-16 items-start">
-            
-            {/* Left Column: Interactive Controls */}
-            <div className="w-full lg:w-5/12 space-y-10 sticky top-32">
-              
-              {/* Slider Component */}
-              <div className="bg-white/5 rounded-3xl p-8 border border-white/5">
-                <div className="flex justify-between items-end mb-8">
-                  <label className="text-brand-green-pale font-medium text-sm uppercase tracking-wider">
-                      <EditableText value={financials.labelSales} onSave={(val) => updateSection('financials', 'labelSales', val)} />
-                  </label>
-                  <div className="text-5xl font-black text-white tabular-nums tracking-tight">
-                    {dailyCups} <span className="text-lg font-medium text-brand-green-light/50">
-                        <EditableText value={financials.labelCups} onSave={(val) => updateSection('financials', 'labelCups', val)} />
-                    </span>
-                  </div>
-                </div>
-                
-                <div className="relative h-12 flex items-center">
+        {/* --- MAIN CONTROLLER AREA --- */}
+        <div className="bg-[#1C1C1E] border border-white/10 rounded-3xl p-6 md:p-10 mb-8 shadow-2xl">
+            {/* Slider Section */}
+            <div className="flex flex-col md:flex-row gap-10 items-center mb-10">
+                 <div className="w-full md:w-1/3">
+                    <div className="flex justify-between items-center mb-4">
+                        <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">
+                            <EditableText value={financials.labelSales} onSave={(val) => updateSection('financials', 'labelSales', val)} />
+                        </label>
+                        <div className="text-3xl font-mono font-bold text-brand-green-medium">
+                            {dailyCups} <span className="text-sm text-gray-500">cups/day</span>
+                        </div>
+                    </div>
                     <input 
-                    type="range" min="15" max="150" step="5" value={dailyCups} 
-                    onChange={(e) => setDailyCups(Number(e.target.value))}
-                    className="w-full h-2 bg-brand-green-medium/30 rounded-full appearance-none cursor-pointer accent-brand-cream hover:accent-white transition-all z-20 relative focus:outline-none focus:ring-2 focus:ring-brand-cream/50"
+                        type="range" min="15" max="150" step="5" value={dailyCups} 
+                        onChange={(e) => setDailyCups(Number(e.target.value))}
+                        className="w-full h-2 bg-gray-800 rounded-full appearance-none cursor-pointer accent-brand-green-medium hover:accent-brand-green-light transition-all"
                     />
-                    {/* Tick marks */}
-                    <div className="absolute w-full flex justify-between px-1 pointer-events-none top-1/2 -translate-y-1/2 z-10">
-                        <div className="w-1 h-3 bg-white/20 rounded-full"></div>
-                        <div className="w-1 h-3 bg-white/20 rounded-full"></div>
-                        <div className="w-1 h-3 bg-white/20 rounded-full"></div>
+                    <div className="flex justify-between text-[10px] text-gray-600 font-mono uppercase mt-2">
+                        <span>Min (15)</span>
+                        <span>Target (60+)</span>
+                        <span>Max (150)</span>
                     </div>
-                </div>
-                
-                <div className="flex justify-between mt-2 text-xs text-brand-green-light/50 font-medium font-mono uppercase">
-                  <span><EditableText value={financials.labelMin} onSave={(val) => updateSection('financials', 'labelMin', val)} /></span>
-                  <span><EditableText value={financials.labelTarget} onSave={(val) => updateSection('financials', 'labelTarget', val)} /></span>
-                  <span><EditableText value={financials.labelMax} onSave={(val) => updateSection('financials', 'labelMax', val)} /></span>
-                </div>
-              </div>
+                 </div>
 
-              {/* Main Result Card */}
-              <div className={`rounded-3xl p-8 border transition-all duration-500 relative overflow-hidden ${lowSalesWarning ? 'bg-red-500/10 border-red-500/30' : 'bg-brand-cream text-brand-green-dark border-brand-cream'}`}>
-                 
-                 {/* Decorative background circle */}
-                 {!lowSalesWarning && <div className="absolute -top-20 -right-20 w-64 h-64 bg-brand-green-medium/10 rounded-full blur-3xl"></div>}
-
-                {lowSalesWarning ? (
-                    <div className="flex flex-col items-center justify-center text-red-300 py-6 text-center">
-                      <AlertOctagon size={40} className="mb-3"/>
-                      <span className="font-bold text-lg">
-                          <EditableText value={financials.alertTitle} onSave={(val) => updateSection('financials', 'alertTitle', val)} />
-                      </span>
-                      <span className="text-xs mt-1 opacity-70">
-                          <EditableText value={financials.alertDesc} onSave={(val) => updateSection('financials', 'alertDesc', val)} />
-                      </span>
-                    </div>
-                ) : (
-                    <div className="relative z-10">
-                        <div className="flex justify-between items-start mb-8">
-                            <div className="flex items-center gap-2">
-                                <div className="w-8 h-8 rounded-full bg-brand-green-dark text-white flex items-center justify-center">
-                                    <TrendingUp size={16} />
-                                </div>
-                                <span className="text-brand-green-dark font-bold text-sm tracking-wide">
-                                    <EditableText value={financials.labelProfit} onSave={(val) => updateSection('financials', 'labelProfit', val)} />
-                                </span>
-                            </div>
-                            <span className="text-5xl font-black tracking-tighter tabular-nums">
-                            €{onesipData.profit.toLocaleString(undefined, {maximumFractionDigits:0})}
-                            </span>
-                        </div>
-                        
-                        <div className="space-y-3">
-                             <div className="flex justify-between items-center py-3 border-b border-brand-green-dark/10">
-                                <span className="text-xs font-bold text-brand-green-medium uppercase">
-                                    <EditableText value={financials.labelRevenue} onSave={(val) => updateSection('financials', 'labelRevenue', val)} />
-                                </span>
-                                <span className="font-bold font-mono">€{onesipData.revenue.toLocaleString()}</span>
-                             </div>
-                             <div className="flex justify-between items-center py-3 border-b border-brand-green-dark/10">
-                                <span className="text-xs font-bold text-brand-green-medium uppercase">
-                                    <EditableText value={financials.labelCost} onSave={(val) => updateSection('financials', 'labelCost', val)} />
-                                </span>
-                                <span className="font-bold font-mono">€{onesipData.equip.toLocaleString(undefined, {maximumFractionDigits:0})}</span>
-                             </div>
-                        </div>
-
-                        {/* AI Section */}
-                        <div className="mt-8">
-                            {!aiAnalysis ? (
-                                <button 
-                                    onClick={handleAiAnalysis}
-                                    disabled={isAnalyzing}
-                                    className="w-full flex items-center justify-center gap-2 text-xs font-bold bg-brand-green-dark text-white px-4 py-4 rounded-xl hover:bg-brand-green-medium transition-colors"
-                                >
-                                    <Bot size={16} />
-                                    {isAnalyzing ? financials.aiButtonLoading : financials.aiButton}
-                                </button>
-                            ) : (
-                                <div className="bg-white/50 backdrop-blur rounded-xl p-4 border border-brand-green-dark/5">
-                                    <div className="flex items-center gap-2 mb-2 text-brand-green-dark font-bold text-xs uppercase"><Bot size={14}/> {financials.aiResultTitle}</div>
-                                    <p className="text-xs text-brand-green-medium leading-relaxed">{aiAnalysis}</p>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                )}
-              </div>
+                 {/* Bar Chart Section */}
+                 <div className="w-full md:w-2/3 h-48 md:h-40">
+                     <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={chartData} barSize={40}>
+                            <XAxis 
+                                dataKey="name" 
+                                axisLine={false} 
+                                tickLine={false} 
+                                tick={{ fill: '#888', fontSize: 10, fontWeight: 700 }}
+                                dy={10}
+                            />
+                            <Tooltip 
+                                cursor={{fill: 'rgba(255,255,255,0.05)'}}
+                                contentStyle={{backgroundColor: '#000', border: '1px solid #333', borderRadius: '8px', color: '#fff'}}
+                                formatter={(value: number) => [`€${value.toLocaleString()}`, 'Net Profit']}
+                            />
+                            <Bar dataKey="profit" radius={[6, 6, 6, 6]}>
+                                {chartData.map((entry, index) => (
+                                    <Cell 
+                                        key={`cell-${index}`} 
+                                        fill={entry.id === 'D' ? '#06C167' : (entry.profit > 0 ? '#333' : '#EF4444')} 
+                                        className="transition-all duration-500"
+                                    />
+                                ))}
+                            </Bar>
+                        </BarChart>
+                     </ResponsiveContainer>
+                 </div>
             </div>
+        </div>
 
-            {/* Right Column: Comparative List */}
-            <div className="w-full lg:w-7/12">
-               <div className="mb-6 flex items-center justify-between">
-                  <h3 className="text-lg font-bold text-brand-cream">
-                      <EditableText value={financials.comparisonTitle} onSave={(val) => updateSection('financials', 'comparisonTitle', val)} />
-                  </h3>
-                  <div className="h-px flex-1 bg-white/10 ml-6"></div>
-               </div>
+        {/* --- DETAILED CARDS GRID --- */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {models.map((model, idx) => {
+                const isActive = activeModelId === model.id;
+                const data = calculateDetails(model.id, dailyCups);
+                const isLoss = data.profit < 0;
 
-              <div className="space-y-4">
-                {models.map((m, mIndex) => {
-                    const data = getModelData(m.id);
-                    const isProfitable = data.profit > 0;
-                    const isHighlight = m.id === 'D';
-                    const isExpanded = expandedCard === m.id;
-                    const isModelCRisk = m.id === 'C' && data.profit < 0;
-
-                    return (
-                    <div 
-                        key={m.id} 
-                        className={`relative rounded-2xl transition-all duration-300 overflow-hidden group
-                        ${isHighlight 
-                            ? (lowSalesWarning ? 'bg-white/5 border border-white/10 opacity-50' : 'bg-brand-green-medium text-white shadow-2xl ring-1 ring-white/20') 
-                            : 'bg-white/5 border border-white/5 hover:bg-white/10'}
+                return (
+                    <button
+                        key={model.id}
+                        onClick={() => setActiveModelId(model.id)}
+                        className={`text-left relative flex flex-col p-6 rounded-2xl border transition-all duration-300 group
+                            ${isActive 
+                                ? 'bg-[#1C1C1E] border-brand-green-medium/50 shadow-xl scale-[1.02] z-10 ring-1 ring-brand-green-medium/20' 
+                                : 'bg-[#111211] border-white/5 hover:bg-[#1C1C1E] opacity-70 hover:opacity-100 hover:border-white/10'
+                            }
                         `}
                     >
-                        <div className="p-6 cursor-pointer" onClick={() => setExpandedCard(isExpanded ? null : m.id)}>
-                            <div className="flex justify-between items-center">
-                                <div className="flex items-center gap-4">
-                                    <div className={`w-2 h-12 rounded-full ${isHighlight ? 'bg-brand-cream' : (isProfitable ? 'bg-brand-green-light/30' : 'bg-red-500/50')}`}></div>
-                                    <div>
-                                        <div className={`text-base font-bold ${isHighlight ? 'text-white' : 'text-brand-green-pale'}`}>
-                                            <EditableText value={m.name} onSave={(val) => updateFinancialModel(mIndex, 'name', val)} />
-                                        </div>
-                                        <div className={`text-xs mt-1 font-mono ${isHighlight ? 'text-brand-green-light' : 'text-brand-green-light/50'}`}>
-                                            Avg Price: €{m.id === 'C' ? '6.0' : '5.0'}
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <div className="text-right">
-                                    <div className={`text-2xl font-black tabular-nums tracking-tight ${isHighlight ? 'text-white' : (isProfitable ? 'text-brand-green-light' : 'text-red-400')}`}>
-                                        {data.profit > 0 ? '+' : ''}€{data.profit.toLocaleString(undefined, {maximumFractionDigits:0})}
-                                    </div>
-                                    <div className="flex justify-end gap-2 mt-1">
-                                         {data.isCapped && <span className="text-[9px] uppercase tracking-wider font-bold text-yellow-500">产能上限</span>}
-                                         {isModelCRisk && <span className="text-[9px] uppercase tracking-wider font-bold text-red-400">高风险</span>}
-                                    </div>
-                                </div>
-                            </div>
+                        <div className="flex justify-between items-start mb-4">
+                             <h3 className={`font-bold text-sm ${isActive ? 'text-white' : 'text-gray-400'}`}>
+                                 <EditableText value={model.name} onSave={(val) => updateFinancialModel(idx, 'name', val)} />
+                             </h3>
+                             {isActive && <div className="w-2 h-2 rounded-full bg-brand-green-medium animate-pulse"></div>}
                         </div>
 
-                        {/* Expanded Content */}
-                        <div className={`grid transition-all duration-500 ease-in-out ${isExpanded ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
-                            <div className="overflow-hidden">
-                                <div className="p-6 pt-0 border-t border-white/10 bg-black/10">
-                                    <div className="grid grid-cols-2 gap-8 py-6">
-                                        <div className="space-y-3">
-                                            <span className="text-[10px] uppercase font-bold text-brand-green-light/50 tracking-widest block mb-2">核心优势</span>
-                                            {m.pros.map((p,i) => (
-                                                <div key={i} className="flex items-start gap-2 text-xs text-brand-green-pale">
-                                                    <CheckCircle2 size={12} className="mt-0.5 text-brand-green-medium shrink-0"/> 
-                                                    <EditableText value={p} onSave={(val) => updateFinancialModelDetail(mIndex, 'pros', i, val)} />
-                                                </div>
-                                            ))}
-                                        </div>
-                                        <div className="space-y-3">
-                                            <span className="text-[10px] uppercase font-bold text-brand-green-light/50 tracking-widest block mb-2">潜在风险</span>
-                                            {m.cons.map((c,i) => (
-                                                <div key={i} className="flex items-start gap-2 text-xs text-brand-green-pale/80">
-                                                    <XCircle size={12} className="mt-0.5 text-red-400 shrink-0"/> 
-                                                    <EditableText value={c} onSave={(val) => updateFinancialModelDetail(mIndex, 'cons', i, val)} />
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                    
-                                    {/* Detailed Bill Breakdown */}
-                                    <div className="bg-black/20 rounded-xl p-4 font-mono text-xs space-y-2">
-                                        <div className="flex justify-between text-brand-green-light/70">
-                                            <span><EditableText value={financials.breakdownRevenue} onSave={(val) => updateSection('financials', 'breakdownRevenue', val)} /></span>
-                                            <span className="font-bold text-white">€{data.revenue.toLocaleString()}</span>
-                                        </div>
-                                        <div className="flex justify-between text-red-300/80">
-                                            <span><EditableText value={financials.breakdownMaterials} onSave={(val) => updateSection('financials', 'breakdownMaterials', val)} /></span>
-                                            <span>€{data.materials.toFixed(0)}</span>
-                                        </div>
-                                        <div className="flex justify-between text-red-300/80">
-                                            <span><EditableText value={financials.breakdownLabor} onSave={(val) => updateSection('financials', 'breakdownLabor', val)} /></span>
-                                            <span>€{data.labor}</span>
-                                        </div>
-                                        <div className="flex justify-between text-red-300/80">
-                                            <span><EditableText value={financials.breakdownRent} onSave={(val) => updateSection('financials', 'breakdownRent', val)} /></span>
-                                            <span>€{data.rent}</span>
-                                        </div>
-                                        <div className="flex justify-between text-red-300/80">
-                                            <span><EditableText value={financials.breakdownEquip} onSave={(val) => updateSection('financials', 'breakdownEquip', val)} /></span>
-                                            <span>€{data.equip.toFixed(0)}</span>
-                                        </div>
-                                        {data.misc > 0 && (
-                                            <div className="flex justify-between text-red-300/80">
-                                                <span><EditableText value={financials.breakdownMisc} onSave={(val) => updateSection('financials', 'breakdownMisc', val)} /></span>
-                                                <span>€{data.misc}</span>
-                                            </div>
-                                        )}
-                                        <div className="h-px bg-white/10 my-2"></div>
-                                        <div className="flex justify-between font-bold text-white text-sm">
-                                            <span><EditableText value={financials.breakdownNet} onSave={(val) => updateSection('financials', 'breakdownNet', val)} /></span>
-                                            <span>{data.profit > 0 ? '+' : ''}€{data.profit.toFixed(0)}</span>
-                                        </div>
-                                    </div>
-                                </div>
+                        {/* Big Number */}
+                        <div className={`text-2xl md:text-3xl font-black mb-6 tracking-tight font-mono
+                            ${isLoss ? 'text-red-500' : (isActive ? 'text-brand-green-medium' : 'text-gray-300')}
+                        `}>
+                            {isLoss ? '-' : '+'}€{Math.abs(data.profit).toLocaleString()}
+                        </div>
+
+                        {/* Expanded Details (Only visible if active on mobile? No, let's show breakdown always if space permits, or simpler version) */}
+                        <div className="space-y-2 text-xs border-t border-white/5 pt-4 w-full">
+                            <div className="flex justify-between text-gray-400">
+                                <span>Revenue</span>
+                                <span className="text-white font-mono">€{data.revenue.toLocaleString()}</span>
                             </div>
+                            <div className="flex justify-between text-red-400/70">
+                                <span>Costs</span>
+                                <span className="font-mono">-€{data.totalCost.toLocaleString(undefined, {maximumFractionDigits:0})}</span>
+                            </div>
+                        </div>
+                        
+                        {/* Status Label */}
+                        {isActive && (
+                            <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-brand-green-dark text-white text-[9px] font-bold px-3 py-1 rounded-full uppercase tracking-wider border border-brand-green-medium/30">
+                                Currently Viewing
+                            </div>
+                        )}
+                    </button>
+                )
+            })}
+        </div>
+
+        {/* --- DEEP DIVE PANEL (FOR SELECTED MODEL) --- */}
+        {activeModelInfo && (
+            <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-8 animate-fade-in-up">
+                
+                {/* Cost Breakdown Detail */}
+                <div className="bg-[#1C1C1E] border border-white/10 rounded-3xl p-8">
+                     <h4 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
+                         <DollarSign size={20} className="text-brand-green-medium"/>
+                         费用明细 (Cost Breakdown)
+                     </h4>
+                     <div className="space-y-4">
+                         <Row label="月预估营收 (Revenue)" value={activeModelData.revenue} isTotal />
+                         <div className="h-px bg-white/10 my-2"></div>
+                         <Row label="原料成本 (Ingredients)" value={-activeModelData.costMaterials} />
+                         <Row label="人工成本 (Labor)" value={-activeModelData.costLabor} />
+                         <Row label="房租水电 (Rent & Utilities)" value={-activeModelData.costRent} />
+                         <Row label="设备/品牌/折旧 (Equipment)" value={-activeModelData.costEquip} />
+                         <Row label="杂项支出 (Misc)" value={-activeModelData.costMisc} />
+                         <div className="h-px bg-white/10 my-2"></div>
+                         <div className="flex justify-between items-center text-xl font-bold pt-2">
+                             <span className="text-white">净利润 (Net Profit)</span>
+                             <span className={activeModelData.profit > 0 ? 'text-brand-green-medium' : 'text-red-500'}>
+                                 €{activeModelData.profit.toLocaleString(undefined, {maximumFractionDigits: 0})}
+                             </span>
+                         </div>
+                     </div>
+                </div>
+
+                {/* Pros & Cons */}
+                <div className="bg-[#1C1C1E] border border-white/10 rounded-3xl p-8 flex flex-col">
+                    <h4 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
+                         <Activity size={20} className="text-blue-400"/>
+                         模式分析 (Analysis)
+                    </h4>
+                    
+                    <div className="flex-1 space-y-8">
+                        <div>
+                            <span className="text-xs font-bold text-brand-green-medium uppercase tracking-widest mb-3 block">PROS (优势)</span>
+                            <ul className="space-y-3">
+                                {activeModelInfo.pros.map((p, i) => (
+                                    <li key={i} className="flex items-start gap-3 text-sm text-gray-300">
+                                        <Check size={16} className="text-brand-green-medium shrink-0 mt-0.5" />
+                                        <EditableText value={p} onSave={(val) => updateFinancialModelDetail(models.indexOf(activeModelInfo), 'pros', i, val)} />
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                        
+                        <div>
+                            <span className="text-xs font-bold text-red-400 uppercase tracking-widest mb-3 block">CONS (劣势)</span>
+                             <ul className="space-y-3">
+                                {activeModelInfo.cons.map((c, i) => (
+                                    <li key={i} className="flex items-start gap-3 text-sm text-gray-300">
+                                        <X size={16} className="text-red-400 shrink-0 mt-0.5" />
+                                        <EditableText value={c} onSave={(val) => updateFinancialModelDetail(models.indexOf(activeModelInfo), 'cons', i, val)} />
+                                    </li>
+                                ))}
+                            </ul>
                         </div>
                     </div>
-                    );
-                })}
-              </div>
-
-              {/* Chart */}
-              <div className="mt-12 h-64 w-full">
-                  <h3 className="text-xs font-bold text-brand-green-light/50 uppercase tracking-widest mb-6">
-                      <EditableText value={financials.chartTitle} onSave={(val) => updateSection('financials', 'chartTitle', val)} />
-                  </h3>
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={chartData} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
-                      <XAxis 
-                        dataKey="name" 
-                        axisLine={false} 
-                        tickLine={false} 
-                        tick={{ fill: '#929E95', fontSize: 10 }}
-                        dy={10}
-                      />
-                      <Tooltip 
-                        cursor={{fill: 'rgba(255,255,255,0.05)'}}
-                        contentStyle={{backgroundColor: '#465D4E', border: 'none', borderRadius: '8px', color: '#F8F6EF'}}
-                        itemStyle={{color: '#F8F6EF'}}
-                      />
-                      <Bar dataKey="profit" radius={[4, 4, 4, 4]}>
-                        {chartData.map((entry, index) => (
-                          <Cell 
-                            key={`cell-${index}`} 
-                            fill={entry.id === 'D' ? '#F8F6EF' : (entry.profit > 0 ? '#607A69' : '#EF4444')} 
-                            opacity={entry.id === 'D' ? 1 : 0.6}
-                          />
-                        ))}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-              </div>
+                </div>
 
             </div>
-          </div>
+        )}
+        
+        {/* AI Analysis Button */}
+        <div className="mt-8">
+             <button 
+                onClick={handleAiAnalysis}
+                disabled={isAnalyzing}
+                className="w-full py-4 rounded-2xl bg-gradient-to-r from-brand-green-dark to-[#0A2A1A] border border-white/5 text-sm font-bold text-white transition-all flex items-center justify-center gap-2 hover:brightness-110"
+            >
+                <Bot size={18} className={isAnalyzing ? 'animate-pulse' : ''}/>
+                {isAnalyzing ? '正在生成 AI 商业评估...' : `获取 AI 对【${activeModelInfo?.name}】模式的专业点评`}
+            </button>
+            {aiAnalysis && (
+                <div className="mt-4 p-6 bg-[#1C1C1E] border border-white/5 rounded-2xl animate-fade-in text-gray-300 leading-relaxed text-sm">
+                    {aiAnalysis}
+                </div>
+            )}
         </div>
+
       </div>
     </div>
   );
 };
+
+const Row = ({ label, value, isTotal = false }: { label: string, value: number, isTotal?: boolean }) => (
+    <div className={`flex justify-between items-center text-sm ${isTotal ? 'text-white font-bold' : 'text-gray-400'}`}>
+        <span>{label}</span>
+        <span className={`font-mono ${!isTotal && value < 0 ? 'text-red-400/80' : ''}`}>
+            {value < 0 ? '-' : ''}€{Math.abs(value).toLocaleString(undefined, {maximumFractionDigits: 0})}
+        </span>
+    </div>
+);

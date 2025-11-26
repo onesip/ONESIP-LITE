@@ -1,9 +1,9 @@
 
 import React from 'react';
-import { Leaf, Calculator, CheckCircle2, ArrowRight } from 'lucide-react';
+import { ArrowDown } from 'lucide-react';
 import { LogoSymbol } from './BrandLogo';
 import { useContent } from '../contexts/ContentContext';
-import { EditableText } from './ui/Editable';
+import { EditableText, EditableImage } from './ui/Editable';
 
 interface HeroProps {
   scrollToSection: (id: string) => void;
@@ -14,52 +14,45 @@ export const Hero: React.FC<HeroProps> = ({ scrollToSection }) => {
   const { hero } = content;
 
   return (
-    <div id="hero" className="relative min-h-[95vh] flex items-center pt-24 pb-20 overflow-hidden bg-brand-surface">
-      {/* Soft Gradient Background */}
+    <div id="hero" className="relative min-h-screen flex items-center pt-32 pb-20 overflow-hidden bg-[#F5F5F7]">
+      {/* Refined Gradient Background - Very Subtle */}
       <div className="absolute inset-0 z-0 pointer-events-none">
-          <div className="absolute top-[-20%] right-[-10%] w-[60%] h-[60%] bg-brand-green-medium/5 rounded-full blur-[120px]"></div>
-          <div className="absolute bottom-[-10%] left-[-10%] w-[50%] h-[50%] bg-blue-500/5 rounded-full blur-[100px]"></div>
+          <div className="absolute top-[-10%] right-[-5%] w-[40%] h-[40%] bg-blue-100/40 rounded-full blur-[120px]"></div>
+          <div className="absolute bottom-[-10%] left-[-5%] w-[40%] h-[40%] bg-green-100/40 rounded-full blur-[120px]"></div>
       </div>
       
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 w-full">
-        <div className="flex flex-col md:flex-row items-center justify-between gap-16">
+      <div className="max-w-7xl mx-auto px-6 lg:px-8 relative z-10 w-full h-full">
+        <div className="flex flex-col lg:flex-row items-center justify-between gap-12 lg:gap-24 h-full">
           
-          {/* Left Content */}
-          <div className="md:w-1/2 space-y-8 animate-fade-in-up">
+          {/* Left Content - Typography First */}
+          <div className="lg:w-1/2 flex flex-col justify-center animate-fade-in-up text-center lg:text-left">
             
-            <div className="inline-flex items-center px-3 py-1.5 rounded-full bg-white border border-brand-border text-brand-dark text-[10px] font-bold uppercase tracking-widest shadow-sm">
-              <span className="w-1.5 h-1.5 rounded-full bg-brand-green-medium mr-2 animate-pulse"></span>
-              <EditableText 
-                value={hero.tagline} 
-                onSave={(val) => updateHero('tagline', val)} 
-              />
+            <div className="inline-flex items-center gap-2 mb-8 opacity-0 animate-fade-in justify-center lg:justify-start" style={{animationDelay: '0.2s', animationFillMode: 'forwards'}}>
+               <span className="flex h-2 w-2 relative">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-green-medium opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-brand-green-medium"></span>
+                </span>
+               <span className="text-xs font-bold tracking-[0.2em] uppercase text-gray-600">
+                  <EditableText value={hero.tagline} onSave={(val) => updateHero('tagline', val)} />
+               </span>
             </div>
             
-            <h1 className="text-5xl md:text-7xl font-black text-brand-dark leading-[1.05] tracking-tight">
-              <EditableText 
-                value={hero.titleLine1} 
-                onSave={(val) => updateHero('titleLine1', val)} 
-                tag="span"
-                className="block"
-              />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-green-dark to-brand-green-medium block relative pb-2">
-                 <EditableText 
-                  value={hero.titleLine2} 
-                  onSave={(val) => updateHero('titleLine2', val)} 
-                  tag="span"
-                />
+            {/* Mobile: text-5xl, Desktop: text-8xl */}
+            <h1 className="text-5xl md:text-7xl lg:text-8xl font-black text-brand-dark leading-[1.1] md:leading-[0.95] tracking-tighter mb-8">
+              <span className="block">
+                  <EditableText value={hero.titleLine1} onSave={(val) => updateHero('titleLine1', val)} tag="span"/>
+              </span>
+              <span className="block text-transparent bg-clip-text bg-gradient-to-br from-brand-dark to-gray-600">
+                  <EditableText value={hero.titleLine2} onSave={(val) => updateHero('titleLine2', val)} tag="span"/>
               </span>
             </h1>
             
-            <div className="space-y-6">
-              <div className="text-xl md:text-2xl text-brand-gray font-semibold tracking-tight">
-                 <span>人人皆宜，时刻尽享</span>
-                 <span className="mx-2 text-brand-border">|</span>
-                 <span className="text-brand-dark">
-                   <EditableText value={hero.subtitle} onSave={(val) => updateHero('subtitle', val)} />
-                 </span>
-              </div>
-              <div className="text-lg text-brand-gray leading-relaxed max-w-lg font-normal">
+            <div className="space-y-6 md:space-y-8 max-w-lg mx-auto lg:mx-0">
+              <h2 className="text-xl md:text-2xl font-bold text-brand-dark tracking-tight">
+                 <EditableText value={hero.subtitle} onSave={(val) => updateHero('subtitle', val)} />
+              </h2>
+              {/* Increased contrast for description */}
+              <div className="text-base md:text-lg text-gray-700 leading-relaxed font-normal">
                  <EditableText 
                   value={hero.description} 
                   onSave={(val) => updateHero('description', val)} 
@@ -68,81 +61,67 @@ export const Hero: React.FC<HeroProps> = ({ scrollToSection }) => {
               </div>
             </div>
             
-            <div className="flex flex-col sm:flex-row gap-4 pt-4">
+            <div className="flex flex-col sm:flex-row items-center gap-4 pt-10 justify-center lg:justify-start">
               <button 
                 onClick={() => scrollToSection('financials')}
-                className="px-8 py-4 bg-brand-dark text-white rounded-full font-bold text-sm hover:bg-black transition-all transform hover:-translate-y-1 flex items-center justify-center gap-2 shadow-xl hover:shadow-2xl ring-1 ring-transparent group"
+                className="w-full sm:w-auto px-10 py-4 bg-brand-dark text-white rounded-full font-semibold text-sm hover:scale-105 transition-all duration-300 shadow-xl flex items-center justify-center gap-3 group"
               >
-                <Calculator size={18} className="text-brand-green-medium" /> 
                 <EditableText value={hero.buttonText} onSave={(val) => updateHero('buttonText', val)} />
-                <ArrowRight size={16} className="opacity-0 -ml-2 group-hover:opacity-100 group-hover:ml-0 transition-all duration-300" />
+                <ArrowDown size={16} className="group-hover:translate-y-1 transition-transform" />
               </button>
               
-              <div className="flex items-center px-6 py-4 rounded-full border border-brand-border bg-white text-sm font-medium text-brand-dark shadow-sm">
-                <CheckCircle2 size={18} className="mr-2 text-brand-green-medium"/> 
-                <EditableText value={hero.trustText} onSave={(val) => updateHero('trustText', val)} />
+              <div className="flex items-center px-6 py-4 rounded-full border border-gray-300 bg-white/50 backdrop-blur-sm text-sm font-bold text-gray-700">
+                 <EditableText value={hero.trustText} onSave={(val) => updateHero('trustText', val)} />
               </div>
             </div>
           </div>
 
-          {/* Right Visual (Mockup - Apple Style) */}
-          <div className="md:w-1/2 relative flex justify-center md:justify-end perspective-1000">
-            {/* The Device */}
-            <div className="relative w-[340px] h-[640px] bg-white rounded-[50px] shadow-[0_40px_80px_-20px_rgba(0,0,0,0.15)] border-[8px] border-black flex flex-col overflow-hidden transform rotate-y-[-5deg] hover:rotate-0 transition-transform duration-700 ease-out z-10 ring-1 ring-black/5">
+          {/* Right Visual - Ultra Clean Device Mockup */}
+          <div className="lg:w-1/2 relative flex justify-center lg:justify-end perspective-1000 mt-8 lg:mt-0">
+            {/* The Device Frame - Scaled down slightly on mobile */}
+            <div className="relative w-[280px] h-[560px] md:w-[320px] md:h-[640px] bg-black rounded-[55px] shadow-[0_50px_100px_-20px_rgba(0,0,0,0.2)] border-[8px] border-gray-900 ring-1 ring-gray-700/50 flex flex-col overflow-hidden transform hover:scale-[1.02] transition-transform duration-700 ease-out z-10">
               
-              {/* Screen Content */}
-              <div className="h-full bg-brand-surface relative flex flex-col">
-                {/* Header UI */}
-                <div className="p-6 pb-2 flex justify-between items-center bg-white/80 backdrop-blur border-b border-brand-border pt-10">
-                   <div className="flex items-center gap-2">
-                     <div className="w-8 h-8 rounded-full bg-brand-green-dark flex items-center justify-center text-white">
-                        <LogoSymbol className="w-4 h-4"/>
-                     </div>
-                     <div className="text-brand-dark font-bold text-base tracking-tight">ONESIP</div>
-                   </div>
-                </div>
+              {/* Dynamic Island Area */}
+              <div className="absolute top-0 w-full h-8 bg-black z-20 flex justify-center">
+                 <div className="w-24 h-6 bg-black rounded-b-2xl"></div>
+              </div>
 
-                {/* Hero Product on Screen */}
-                <div className="flex-1 px-6 py-4 flex flex-col relative">
-                   <div className="relative z-10 w-full aspect-[4/5] rounded-3xl overflow-hidden shadow-card mb-6 bg-white">
-                      <img src="https://images.unsplash.com/photo-1595981267035-7b04ca84a82d?auto=format&fit=crop&w=600&q=80" alt="Drink" className="w-full h-full object-cover" />
-                      <div className="absolute top-4 right-4 bg-white/90 backdrop-blur px-3 py-1.5 rounded-full text-[10px] font-bold text-brand-dark shadow-sm">
-                        TOP 1
+              {/* Screen Content */}
+              <div className="h-full bg-white relative flex flex-col">
+                 <EditableImage 
+                    src={hero.image} 
+                    alt="Hero Product" 
+                    className="w-full h-full object-cover"
+                    onSave={(val) => updateHero('image', val)}
+                  />
+                  
+                  {/* Overlay UI on Phone Screen */}
+                  <div className="absolute bottom-0 w-full bg-gradient-to-t from-black/80 via-black/40 to-transparent p-8 pt-32 text-white">
+                      <div className="flex items-center gap-2 mb-2">
+                          <LogoSymbol className="w-4 h-4 text-white"/>
+                          <span className="text-xs font-bold tracking-widest uppercase opacity-80">Signature</span>
                       </div>
-                   </div>
-                   
-                   <div className="space-y-1">
-                     <h3 className="text-2xl font-bold text-brand-dark">泰奶咸法酪</h3>
-                     <p className="text-sm text-brand-gray font-medium">Thai Tea Salty Cheese</p>
-                   </div>
-                   
-                   <div className="mt-auto flex items-center justify-between pt-6 border-t border-brand-border">
-                      <span className="text-3xl font-bold text-brand-dark tracking-tighter">€5.0</span>
-                      <button className="h-12 w-12 bg-black rounded-full flex items-center justify-center text-white shadow-lg hover:scale-110 transition active:scale-95">
-                        <ArrowRight size={20} />
-                      </button>
-                   </div>
-                </div>
+                      <h3 className="text-3xl font-bold leading-none mb-1">Thai Tea</h3>
+                      <p className="text-lg opacity-80 font-serif italic">Salty Cheese</p>
+                      <div className="mt-4 flex justify-between items-end">
+                          <span className="text-2xl font-bold">€5.0</span>
+                          <div className="w-10 h-10 bg-white text-black rounded-full flex items-center justify-center">
+                              <ArrowDown size={18} className="-rotate-90"/>
+                          </div>
+                      </div>
+                  </div>
               </div>
             </div>
             
-            {/* Floating Statistic Card 1 */}
-            <div className="absolute top-40 -left-10 bg-white/80 backdrop-blur-xl p-5 rounded-2xl shadow-glass border border-white/40 animate-float flex items-center gap-4 z-20">
-               <div className="w-10 h-10 rounded-full bg-brand-surface flex items-center justify-center text-brand-green-dark">
-                 <Leaf size={18} />
-               </div>
-               <div>
-                  <div className="text-[10px] text-brand-gray uppercase font-bold tracking-wider">Daily Revenue</div>
-                  <div className="text-2xl font-black text-brand-dark leading-none">+35%</div>
-               </div>
+            {/* Minimalist Floating Elements - Hidden on small mobile to avoid clutter */}
+            <div className="absolute top-1/3 -right-4 lg:-right-4 bg-white p-4 rounded-2xl shadow-glass border border-gray-100 z-20 animate-float hidden sm:block">
+               <div className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Revenue</div>
+               <div className="text-3xl font-black text-brand-dark">+35%</div>
             </div>
 
-             {/* Floating Statistic Card 2 */}
-            <div className="absolute bottom-32 -right-8 bg-black/90 backdrop-blur p-5 rounded-2xl shadow-2xl animate-float animation-delay-2000 flex items-center gap-4 z-20">
-               <div>
-                  <div className="text-[10px] text-gray-400 uppercase font-bold tracking-wider text-right">Avg Speed</div>
-                  <div className="text-2xl font-bold text-white leading-none">10s<span className="text-xs font-normal text-gray-500 ml-1">/cup</span></div>
-               </div>
+             <div className="absolute bottom-24 -left-4 lg:-left-8 bg-brand-green-dark p-4 rounded-2xl shadow-2xl z-20 animate-float animation-delay-2000 hidden sm:block">
+               <div className="text-xs font-bold text-brand-green-light/60 uppercase tracking-wider mb-1">Efficiency</div>
+               <div className="text-3xl font-black text-white">10s<span className="text-sm font-normal text-white/60 ml-1">/cup</span></div>
             </div>
           </div>
 

@@ -9,67 +9,69 @@ export const ShowcaseSection = () => {
   const { showcase } = content;
 
   return (
-    <div id="showcase" className="py-32 bg-white relative overflow-hidden">
-      {/* Background Decor */}
-      <div className="absolute top-0 right-0 w-1/3 h-full bg-brand-cream skew-x-12 translate-x-32"></div>
-      
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-        <div className="flex flex-col md:flex-row justify-between items-end mb-20 gap-8">
-          <div className="max-w-2xl">
-            <span className="text-brand-green-medium font-bold tracking-widest text-xs uppercase mb-4 block">
-                <EditableText value={showcase.tagline} onSave={(val) => updateSection('showcase', 'tagline', val)} />
-            </span>
-            <h2 className="text-4xl md:text-5xl font-black text-brand-dark leading-tight">
+    <div id="showcase" className="py-32 bg-white relative">
+      <div className="max-w-7xl mx-auto px-6 lg:px-8">
+        
+        {/* Header */}
+        <div className="mb-20">
+          <div className="flex items-center gap-3 mb-6">
+                 <span className="h-px w-8 bg-brand-dark"></span>
+                 <span className="text-xs font-bold tracking-widest uppercase text-brand-dark">
+                    <EditableText value={showcase.tagline} onSave={(val) => updateSection('showcase', 'tagline', val)} />
+                 </span>
+          </div>
+          <div className="flex flex-col md:flex-row justify-between items-end gap-8">
+             <h2 className="text-4xl md:text-5xl font-black text-brand-dark leading-tight tracking-tight max-w-2xl">
                 <EditableText value={showcase.title} onSave={(val) => updateSection('showcase', 'title', val)} multiline />
             </h2>
-          </div>
-          <div className="text-lg text-brand-green-medium font-light max-w-md leading-relaxed pb-2">
-             <EditableText value={showcase.description} onSave={(val) => updateSection('showcase', 'description', val)} multiline />
+            <div className="text-gray-500 max-w-sm leading-relaxed font-light text-sm">
+                 <EditableText value={showcase.description} onSave={(val) => updateSection('showcase', 'description', val)} multiline />
+            </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        {/* Gallery Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {showcase.items.map((item, i) => (
-                <div key={i} className="group relative rounded-[32px] overflow-hidden aspect-[3/4] md:aspect-[4/5] shadow-lg cursor-pointer">
-                    {/* Image Layer */}
-                    <div className="absolute inset-0 transition-transform duration-700 group-hover:scale-110">
+                <div key={i} className="group relative rounded-2xl overflow-hidden aspect-[3/4] cursor-pointer">
+                    {/* Image */}
+                    <div className="absolute inset-0 transition-transform duration-700 group-hover:scale-105">
                          <EditableImage 
-                            src={item.image || "https://images.unsplash.com/photo-1579027989536-b7b1f875659b"} 
+                            src={item.image || ""} 
                             alt={item.title} 
                             onSave={(url) => updateSectionItem('showcase', i, 'image', url)}
                             className="w-full h-full object-cover"
                          />
                     </div>
                     
-                    {/* Gradient Overlay */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-80 group-hover:opacity-90 transition-opacity"></div>
+                    {/* Gradient */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60 group-hover:opacity-80 transition-opacity"></div>
 
-                    {/* Top Location Tag */}
-                    <div className="absolute top-6 left-6 bg-white/20 backdrop-blur-md border border-white/20 text-white px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider flex items-center gap-1.5">
-                        <MapPin size={12} />
-                        <EditableText value={item.tag || "Location"} onSave={(val) => updateSectionItem('showcase', i, 'tag', val)} />
+                    {/* Content */}
+                    <div className="absolute top-6 left-6">
+                        <div className="inline-flex items-center gap-1.5 bg-white/20 backdrop-blur-md px-3 py-1.5 rounded-full text-xs font-bold text-white border border-white/20">
+                             <MapPin size={10} />
+                             <EditableText value={item.tag || "Location"} onSave={(val) => updateSectionItem('showcase', i, 'tag', val)} />
+                        </div>
                     </div>
 
-                    {/* Floating Stat Card (Hover Effect) */}
-                    <div className="absolute top-6 right-6 translate-x-20 opacity-0 group-hover:translate-x-0 group-hover:opacity-100 transition-all duration-500 delay-100">
-                         <div className="bg-brand-green-dark text-white p-3 rounded-xl shadow-xl">
-                             <div className="text-xl font-black leading-none">
-                                <EditableText value={item.statValue} onSave={(val) => updateSectionItem('showcase', i, 'statValue', val)} />
-                             </div>
-                             <div className="text-[10px] text-brand-green-light mt-1">
-                                <EditableText value={item.statLabel} onSave={(val) => updateSectionItem('showcase', i, 'statLabel', val)} />
-                             </div>
-                         </div>
-                    </div>
-
-                    {/* Bottom Content */}
-                    <div className="absolute bottom-0 left-0 w-full p-8 translate-y-4 group-hover:translate-y-0 transition-transform duration-500">
-                        <h3 className="text-2xl font-bold text-white mb-2 flex items-center gap-2">
+                    <div className="absolute bottom-0 left-0 w-full p-8 translate-y-2 group-hover:translate-y-0 transition-transform duration-500">
+                        <div className="text-white mb-1 font-bold text-xl flex items-center justify-between">
                              <EditableText value={item.title} onSave={(val) => updateSectionItem('showcase', i, 'title', val)} />
-                             <ArrowUpRight size={20} className="opacity-0 group-hover:opacity-100 transition-opacity text-brand-green-medium"/>
-                        </h3>
-                        <div className="text-gray-300 text-sm leading-relaxed line-clamp-2 group-hover:line-clamp-none group-hover:text-white transition-colors">
+                             <ArrowUpRight size={20} className="opacity-0 group-hover:opacity-100 transition-opacity"/>
+                        </div>
+                        <div className="text-gray-300 text-xs leading-relaxed line-clamp-2 mb-4 group-hover:text-white">
                              <EditableText value={item.desc} onSave={(val) => updateSectionItem('showcase', i, 'desc', val)} multiline />
+                        </div>
+                        
+                        {/* Stat Pill */}
+                        <div className="inline-flex flex-col bg-brand-green-dark/90 backdrop-blur px-4 py-2 rounded-lg border border-white/10">
+                             <span className="text-lg font-black text-white leading-none">
+                                <EditableText value={item.statValue} onSave={(val) => updateSectionItem('showcase', i, 'statValue', val)} />
+                             </span>
+                             <span className="text-[9px] text-brand-green-light uppercase tracking-wider">
+                                <EditableText value={item.statLabel} onSave={(val) => updateSectionItem('showcase', i, 'statLabel', val)} />
+                             </span>
                         </div>
                     </div>
                 </div>

@@ -16,7 +16,6 @@ import { AdminDashboard } from './components/AdminDashboard';
 import { AdminLogin } from './components/AdminLogin';
 import { useContent } from './contexts/ContentContext';
 import { Save, LogOut, EyeOff, Loader2 } from 'lucide-react';
-import { LogoSymbol } from './components/BrandLogo';
 
 const SectionWrapper = ({ isVisible, isAdmin, children }: { isVisible: boolean, isAdmin: boolean, children: React.ReactNode }) => {
     if (!isVisible && !isAdmin) return null;
@@ -69,17 +68,14 @@ const App: React.FC = () => {
   if (isLoading) {
     return (
         <div className="fixed inset-0 z-[99999] bg-[#F5F5F7] flex flex-col items-center justify-center">
-            {/* Elegant Loading State */}
-            <div className="relative">
-                <div className="w-20 h-20 bg-white rounded-3xl flex items-center justify-center text-brand-green-medium shadow-[0_20px_40px_-10px_rgba(0,0,0,0.1)] animate-float">
-                    <LogoSymbol className="w-10 h-10"/>
+            {/* Minimalist Text Loading State */}
+            <div className="relative flex flex-col items-center gap-6 animate-fade-in">
+                <div className="font-sans font-black text-4xl tracking-tighter text-brand-dark">
+                    ONESIP
                 </div>
-                <div className="absolute -bottom-12 left-0 w-full flex justify-center">
-                    <div className="flex gap-1.5">
-                        <div className="w-2 h-2 rounded-full bg-brand-green-medium/20 animate-bounce delay-0"></div>
-                        <div className="w-2 h-2 rounded-full bg-brand-green-medium/20 animate-bounce delay-150"></div>
-                        <div className="w-2 h-2 rounded-full bg-brand-green-medium/20 animate-bounce delay-300"></div>
-                    </div>
+                {/* Subtle progress bar */}
+                <div className="w-24 h-0.5 bg-gray-200 rounded-full overflow-hidden">
+                    <div className="h-full bg-brand-dark w-1/3 animate-[shimmer_1s_infinite_linear] rounded-full"></div>
                 </div>
             </div>
         </div>
@@ -95,7 +91,7 @@ const App: React.FC = () => {
   }
 
   return (
-    <div className="font-sans text-brand-dark bg-brand-surface selection:bg-brand-green-medium selection:text-white relative antialiased pb-20">
+    <div className="font-sans text-brand-dark bg-white selection:bg-brand-green-medium selection:text-white relative antialiased">
       <Navbar 
         activeSection={activeSection} 
         scrollToSection={scrollToSection} 
@@ -104,8 +100,8 @@ const App: React.FC = () => {
       
       <Hero scrollToSection={scrollToSection} />
       
-      {/* Main Content Container with spacing */}
-      <div className="space-y-6 md:space-y-8 pb-12">
+      {/* Main Content Container with cleaner spacing */}
+      <div className="flex flex-col w-full">
           <SectionWrapper isVisible={content.model.isVisible} isAdmin={isAdmin}>
              <ModelSection />
           </SectionWrapper>
@@ -145,9 +141,9 @@ const App: React.FC = () => {
 
       {/* Modern Sync Overlay */}
       {isSyncing && (
-          <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[10001] bg-white/80 backdrop-blur-xl text-brand-dark px-6 py-3 rounded-full flex items-center gap-3 shadow-[0_8px_30px_rgba(0,0,0,0.12)] animate-in slide-in-from-top-4 border border-white/20">
+          <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[10001] bg-white/90 backdrop-blur-xl text-brand-dark px-6 py-3 rounded-full flex items-center gap-3 shadow-glass animate-in slide-in-from-top-4 border border-gray-100">
               <Loader2 size={16} className="animate-spin text-brand-green-medium"/>
-              <span className="text-xs font-bold tracking-wide">同步云端数据中...</span>
+              <span className="text-xs font-bold tracking-wide">SYNCING...</span>
           </div>
       )}
 

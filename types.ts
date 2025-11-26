@@ -45,6 +45,7 @@ export interface HeroContent {
   description: string;
   buttonText: string;
   trustText: string;
+  image: string; // Added image field
 }
 
 // Generic Item for lists (Model cards, Process steps, etc.)
@@ -209,14 +210,15 @@ export interface SiteContent {
   hero: HeroContent;
   model: ModelContent;
   process: ProcessContent;
-  showcase: ShowcaseContent; // NEW
+  showcase: ShowcaseContent; 
   comparison: ComparisonContent;
   financials: FinancialsContent;
   menuSection: MenuSectionContent;
-  faq: FAQContent; // NEW
+  faq: FAQContent; 
   menu: MenuItem[];
   partner: PartnerContent;
   footer: FooterContent;
+  library: string[]; // NEW: For storing uploaded images
 }
 
 // --- Chat System Types ---

@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useContent } from '../contexts/ContentContext';
 import { useChat } from '../contexts/ChatContext';
 import { fetchCloudContent, createCloudBin } from '../services/storageService'; 
@@ -18,6 +18,7 @@ import {
   TrendingUp,
   Users,
   ArrowRight,
+  ArrowLeft,
   Eye,
   Settings,
   Cloud,
@@ -444,28 +445,155 @@ const DashboardChat = () => {
 
 // --- Sub-Component: Media Library ---
 const DashboardMedia = () => {
-  const { content } = useContent();
-  const images = [
-      { id: 'hero', src: "https://images.unsplash.com/photo-1595981267035-7b04ca84a82d?auto=format&fit=crop&w=600&q=80", name: "Hero Product" },
-      ...content.menu.map(m => ({ id: `menu-${m.id}`, src: m.image, name: m.name }))
+  const { content, addToLibrary, removeFromLibrary } = useContent();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isUploading, setIsUploading] = useState(false);
+
+  // Combine uploaded library + menu images + hero image
+  // Deduplicate and filter empty strings
+  const libraryImages = (content.library || []).map((src, i) => ({ 
+      id: src, // Use URL as unique ID for correct deletion behavior in React
+      src, 
+      name: `Uploaded ${i+1}`, 
+      isDeletable: true 
+  }));
+  const systemImages = [
+      { id: 'hero', src: content.hero.image, name: "Hero Product", isDeletable: false },
+      ...content.menu.map(m => ({ id: `menu-${m.id}`, src: m.image, name: `Product: ${m.name}`, isDeletable: false }))
   ];
+  
+  const allImages = [...libraryImages, ...systemImages];
+
+  // CLIENT-SIDE IMAGE COMPRESSION (Max Width: 800px, Quality: 0.7)
+  const compressImage = (file: File): Promise<string> => {
+      return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.readAsDataURL(file);
+          reader.onload = (event) => {
+              const img = new Image();
+              img.src = event.target?.result as string;
+              img.onload = () => {
+                  const elem = document.createElement('canvas');
+                  const maxWidth = 800;
+                  let width = img.width;
+                  let height = img.height;
+
+                  if (width > maxWidth) {
+                      height = Math.round((height * maxWidth) / width);
+                      width = maxWidth;
+                  }
+
+                  elem.width = width;
+                  elem.height = height;
+                  const ctx = elem.getContext('2d');
+                  ctx?.drawImage(img, 0, 0, width, height);
+                  
+                  // Export as JPEG with 0.7 quality
+                  resolve(elem.toDataURL('image/jpeg', 0.7));
+              };
+              img.onerror = (err) => reject(err);
+          };
+          reader.onerror = (err) => reject(err);
+      });
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+      if (e.target.files && e.target.files[0]) {
+          const file = e.target.files[0];
+          setIsUploading(true);
+          try {
+              // Warn for very large files even before compression
+              if (file.size > 5 * 1024 * 1024) {
+                  alert("图片太大，请选择 5MB 以下的图片");
+                  return;
+              }
+
+              const base64 = await compressImage(file);
+              addToLibrary(base64);
+              alert("上传成功！别忘了点击右下角的【保存】按钮同步到云端。");
+          } catch (error) {
+              console.error("Upload failed", error);
+              alert("上传失败，请重试");
+          } finally {
+              setIsUploading(false);
+              // Reset input
+              if (fileInputRef.current) fileInputRef.current.value = "";
+          }
+      }
+  };
+
+  const handleCopyUrl = (url: string) => {
+      navigator.clipboard.writeText(url);
+      alert("✅ 图片链接已复制！\n现在去【CMS 装修】或【产品菜单】粘贴使用吧。");
+  };
 
   return (
-    <div className="h-[calc(100vh-140px)] overflow-y-auto animate-fade-in">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            <div className="aspect-square bg-[#1C1C1E] rounded-2xl border border-white/5 border-dashed flex flex-col items-center justify-center cursor-pointer hover:bg-white/5 transition group">
-                <PlusCircle size={40} className="text-gray-600 group-hover:text-brand-green-medium mb-2"/>
-                <span className="text-sm text-gray-500 font-medium">上传新图片</span>
+    <div className="h-[calc(100vh-140px)] overflow-y-auto animate-fade-in p-2">
+        <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4 mb-8 flex items-start gap-3">
+             <AlertCircle className="text-yellow-500 mt-1 shrink-0" size={18}/>
+             <div>
+                 <h4 className="text-yellow-500 font-bold text-sm">关于图片存储</h4>
+                 <p className="text-yellow-500/70 text-xs mt-1">
+                     为了保证云端同步速度，上传的图片会自动压缩。
+                     <br/>上传后，图片会保存在数据文件中。请点击<strong>复制 URL</strong>，然后去其他页面粘贴使用。
+                 </p>
+             </div>
+        </div>
+
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
+            {/* Upload Button */}
+            <div 
+                onClick={() => !isUploading && fileInputRef.current?.click()}
+                className={`aspect-square bg-[#1C1C1E] rounded-2xl border border-white/5 border-dashed flex flex-col items-center justify-center cursor-pointer hover:bg-white/5 transition group ${isUploading ? 'opacity-50 cursor-wait' : ''}`}
+            >
+                <input 
+                    type="file" 
+                    ref={fileInputRef} 
+                    className="hidden" 
+                    accept="image/*"
+                    onChange={handleFileUpload}
+                />
+                {isUploading ? (
+                    <div className="animate-spin text-brand-green-medium mb-2"><Rocket size={32}/></div>
+                ) : (
+                    <PlusCircle size={40} className="text-gray-600 group-hover:text-brand-green-medium mb-2"/>
+                )}
+                <span className="text-sm text-gray-500 font-medium">{isUploading ? "处理中..." : "上传新图片"}</span>
             </div>
-            {images.map((img, i) => (
-                <div key={i} className="group relative aspect-square bg-[#1C1C1E] rounded-2xl overflow-hidden border border-white/5">
-                    <img src={img.src} alt={img.name} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition duration-500" />
-                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition flex items-center justify-center gap-2">
-                        <button className="bg-white text-black p-2 rounded-full text-xs font-bold hover:scale-110 transition">替换</button>
-                        <button className="bg-red-500/20 text-red-400 p-2 rounded-full hover:bg-red-500/40 transition"><LogOut size={14}/></button>
+
+            {/* Image Grid */}
+            {allImages.map((img) => (
+                <div key={img.id} className="group relative aspect-square bg-[#1C1C1E] rounded-2xl overflow-hidden border border-white/5 shadow-lg">
+                    <img src={img.src} alt={img.name} className="w-full h-full object-cover group-hover:scale-110 transition duration-700" />
+                    
+                    {/* Hover Actions */}
+                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition flex flex-col items-center justify-center gap-2 p-2">
+                        <button 
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                handleCopyUrl(img.src);
+                            }}
+                            className="bg-white text-black px-3 py-1.5 rounded-full text-[10px] font-bold hover:scale-105 transition flex items-center gap-1"
+                        >
+                            <Copy size={10} /> 复制 URL
+                        </button>
+                        
+                        {img.isDeletable && (
+                            <button 
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    removeFromLibrary(img.src);
+                                }}
+                                className="bg-red-500/20 text-red-400 px-3 py-1.5 rounded-full text-[10px] font-bold hover:bg-red-500/40 transition flex items-center gap-1"
+                            >
+                                <LogOut size={10} /> 删除
+                            </button>
+                        )}
                     </div>
-                    <div className="absolute bottom-0 w-full bg-black/80 backdrop-blur p-2 text-xs text-center text-gray-300 truncate">
-                        {img.name}
+                    
+                    {/* Label */}
+                    <div className="absolute bottom-0 w-full bg-black/80 backdrop-blur p-2">
+                        <div className="text-[10px] text-gray-300 truncate text-center">{img.name}</div>
                     </div>
                 </div>
             ))}
@@ -492,6 +620,17 @@ export const AdminDashboard = () => {
           </div>
 
           <div className="p-4 space-y-2 mt-4">
+             {/* --- NEW: Exit Button --- */}
+            <button 
+                onClick={closeDashboard}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-400 hover:bg-white/5 hover:text-white transition-all mb-2 group"
+            >
+                <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" /> 返回前台应用
+            </button>
+            
+            <div className="h-px bg-white/5 my-2 mx-4"></div>
+            {/* ------------------------ */}
+
             <button 
                 onClick={() => setActiveTab('home')}
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'home' ? 'bg-brand-green-medium text-white shadow-lg shadow-brand-green-medium/20' : 'text-gray-400 hover:bg-white/5 hover:text-white'}`}

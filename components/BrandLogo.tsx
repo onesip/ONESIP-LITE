@@ -1,3 +1,4 @@
+
 import React from 'react';
 
 // Exporting the raw SVG symbol for use in other components (like the Hero mockup)
@@ -34,21 +35,14 @@ interface BrandLogoProps {
   dark?: boolean;
 }
 
+// Updated Formal Logo: Pure text based, no icon next to it.
 export const BrandLogo: React.FC<BrandLogoProps> = ({ dark = false }) => (
-  <div className="flex items-center gap-3 cursor-pointer select-none group">
-    <div className={`
-      relative w-11 h-11 flex items-center justify-center rounded-xl transform transition-transform duration-500 group-hover:rotate-12
-      ${dark ? 'bg-brand-cream text-brand-green-dark shadow-sm' : 'bg-brand-green-dark text-brand-cream shadow-md'}
-    `}>
-      <LogoSymbol className="w-7 h-7" />
+  <div className="flex items-center gap-1 cursor-pointer select-none group">
+    <div className={`font-sans font-black text-3xl tracking-tighter leading-none flex items-baseline ${dark ? 'text-brand-cream' : 'text-brand-green-dark'}`}>
+      ONE<span className={`transition-colors ${dark ? 'text-brand-green-light' : 'text-brand-green-medium'}`}>SIP</span>
     </div>
-    <div className="flex flex-col justify-center">
-      <div className={`font-sans font-black text-2xl tracking-tighter leading-none flex items-center ${dark ? 'text-brand-cream' : 'text-brand-green-dark'}`}>
-        ONE<span className={`transition-colors ${dark ? 'text-brand-green-light' : 'text-brand-green-medium'}`}>SIP</span>
-      </div>
-      <div className={`text-[0.6rem] font-bold tracking-[0.35em] uppercase ${dark ? 'text-brand-green-light/80' : 'text-brand-green-medium/80'} mt-0.5 ml-0.5`}>
-        LITE
-      </div>
+    <div className={`text-[0.6rem] font-bold tracking-[0.35em] uppercase ${dark ? 'text-brand-green-light/80' : 'text-brand-green-medium/80'} ml-1 -translate-y-1`}>
+      LITE
     </div>
   </div>
 );
