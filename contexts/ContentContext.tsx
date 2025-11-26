@@ -370,6 +370,7 @@ interface ContentContextType {
   isSyncing: boolean;
   isAdmin: boolean;
   isDashboardOpen: boolean;
+  dataSource: 'cloud' | 'local' | 'default'; // New property for debugging
   login: () => void;
   logout: () => void;
   toggleAdmin: () => void;
@@ -420,6 +421,7 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [isDashboardOpen, setIsDashboardOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [dataSource, setDataSource] = useState<'cloud' | 'local' | 'default'>('default');
 
   // Load Cloud Config first, then content
   useEffect(() => {
@@ -435,29 +437,33 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
       setIsLoading(true);
       
       try {
-        // 1. Load Cloud Config from LocalStorage
+        // 1. Load Cloud Config from LocalStorage (for Admin)
         const savedCloudConfig = localStorage.getItem('onesip_cloud_config');
         let currentConfig: CloudConfig = { enabled: false, binId: '', apiKey: '' };
-        
+        let sourceFromEnv = false;
+
         if (savedCloudConfig) {
             try {
-            currentConfig = JSON.parse(savedCloudConfig);
+                currentConfig = JSON.parse(savedCloudConfig);
             } catch (e) {
-            console.error("Failed to parse cloud config", e);
+                console.error("Failed to parse cloud config", e);
             }
         } 
         
-        // CRITICAL: Safe Env Access
+        // CRITICAL: Safe Env Access (For Visitors)
+        // If local storage is empty OR we are forcing environment vars, check env
         const envBinId = getEnv('REACT_APP_CLOUD_BIN_ID');
         const envApiKey = getEnv('REACT_APP_CLOUD_API_KEY');
         
-        if (!currentConfig.apiKey && envBinId && envApiKey) {
+        // If config is missing locally, OR if we have valid env vars, use env vars
+        if ((!currentConfig.apiKey || !currentConfig.binId) && envBinId && envApiKey) {
             currentConfig = {
                 enabled: true,
                 binId: envBinId,
                 apiKey: envApiKey
             };
-            console.log("Using Environment Variables for Cloud Config");
+            sourceFromEnv = true;
+            console.log("Found Vercel Environment Variables. Attempting Cloud Sync.");
         }
 
         setCloudConfig(currentConfig);
@@ -485,6 +491,7 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
                         showcase: cloudData.showcase || defaultContent.showcase,
                         faq: cloudData.faq || defaultContent.faq
                 }));
+                setDataSource('cloud');
                 setIsLoading(false);
                 clearTimeout(timeoutId);
                 return; // Exit if cloud fetch successful
@@ -493,6 +500,8 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
                 console.error("Cloud fetch failed, falling back to local", e);
                 // Fallthrough to local
             }
+        } else {
+             console.warn("No Cloud Config found (neither in LocalStorage nor Env Vars).");
         }
 
         // 3. Fallback to LocalStorage Content (Only for Admin who might have edited offline)
@@ -510,9 +519,12 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
                 showcase: parsed.showcase || defaultContent.showcase,
                 faq: parsed.faq || defaultContent.faq
             }));
+            setDataSource('local');
             } catch (e) {
             console.error("Failed to parse local content", e);
             }
+        } else {
+            setDataSource('default');
         }
       } catch (e) {
           console.error("Catastrophic error in initialization", e);
@@ -669,6 +681,7 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
       isSyncing,
       isAdmin, 
       isDashboardOpen, 
+      dataSource,
       login, 
       logout,
       toggleAdmin,
