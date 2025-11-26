@@ -2,6 +2,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { SiteContent, MenuItem, HeroContent, SectionItem, FinancialModelItem, ProcessPhase, CloudConfig, ShowcaseItem, FAQItem } from '../types';
 import { fetchCloudContent, saveCloudContent } from '../services/storageService';
+import { APP_CONFIG } from '../config';
 
 // 默认数据
 const defaultContent: SiteContent = {
@@ -394,26 +395,6 @@ interface ContentContextType {
 
 const ContentContext = createContext<ContentContextType | undefined>(undefined);
 
-// Helper to safely access env vars to prevent crashes
-// Updated to check both REACT_APP_ (Classic CRA) and VITE_ (Modern Vite) prefixes
-const getEnv = (key: string) => {
-  try {
-    if (typeof process !== 'undefined' && process.env) {
-       // Check exact key
-       if (process.env[key]) return process.env[key];
-       
-       // Try VITE_ prefix if the key starts with REACT_APP_
-       if (key.startsWith('REACT_APP_')) {
-          const viteKey = key.replace('REACT_APP_', 'VITE_');
-          if (process.env[viteKey]) return process.env[viteKey];
-       }
-    }
-    return "";
-  } catch (e) {
-    return "";
-  }
-};
-
 export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [content, setContent] = useState<SiteContent>(defaultContent);
   const [cloudConfig, setCloudConfig] = useState<CloudConfig>({ enabled: false, binId: '', apiKey: '' });
@@ -437,59 +418,42 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
       setIsLoading(true);
       
       try {
-        // --- PRIORITY CHANGE FOR SEAMLESS SYNC ---
-        // 1. Check Env Vars FIRST. If they exist, we assume "Production Mode" and force cloud use.
-        // This solves the "user has to open backend" issue.
-        const envBinId = getEnv('REACT_APP_CLOUD_BIN_ID');
-        const envApiKey = getEnv('REACT_APP_CLOUD_API_KEY');
-        
+        // --- PRIORITY STRATEGY: CONFIG FILE (The "Firebase" way) ---
         let currentConfig: CloudConfig = { enabled: false, binId: '', apiKey: '' };
-        
-        // Local config (Admin override)
-        const savedCloudConfig = localStorage.getItem('onesip_cloud_config');
-        if (savedCloudConfig) {
-            try {
-                const parsed = JSON.parse(savedCloudConfig);
-                // Only use local if it's explicitly enabled, otherwise prefer Env
-                if (parsed.enabled) {
-                    currentConfig = parsed;
-                }
-            } catch (e) {}
-        }
 
-        // If Env vars exist, they override everything for general visitors
-        if (envBinId && envApiKey) {
-            currentConfig = {
+        // 1. Check Hardcoded Config first (Highest Priority for Global Sync)
+        if (APP_CONFIG.ENABLE_CLOUD_SYNC && APP_CONFIG.CLOUD_BIN_ID && APP_CONFIG.CLOUD_API_KEY) {
+             currentConfig = {
                 enabled: true,
-                binId: envBinId,
-                apiKey: envApiKey
-            };
-            console.log("Environment Variables Detected. Auto-connecting to Cloud.");
+                binId: APP_CONFIG.CLOUD_BIN_ID,
+                apiKey: APP_CONFIG.CLOUD_API_KEY
+             };
+             console.log("Using Global Config (config.ts)");
+        } 
+        // 2. Fallback to LocalStorage (Admin overrides)
+        else {
+             const savedCloudConfig = localStorage.getItem('onesip_cloud_config');
+             if (savedCloudConfig) {
+                 try {
+                     const parsed = JSON.parse(savedCloudConfig);
+                     if (parsed.enabled) currentConfig = parsed;
+                 } catch (e) {}
+             }
         }
 
         setCloudConfig(currentConfig);
 
-        // 2. Fetch Content
-        // If we have a config, try fetching cloud FIRST
+        // 3. Fetch Content
         if (currentConfig.enabled && currentConfig.binId && currentConfig.apiKey) {
             try {
                 console.log("Fetching from Cloud...", currentConfig.binId);
                 const cloudData = await fetchCloudContent(currentConfig.binId, currentConfig.apiKey);
                 if (cloudData) {
-                    // Merge with default to ensure structure integrity
                     setContent(prev => ({
                         ...defaultContent,
                         ...cloudData,
-                            process: {
-                                ...defaultContent.process,
-                                ...cloudData.process,
-                                phases: cloudData.process?.phases || defaultContent.process.phases
-                            },
-                            financials: {
-                                ...defaultContent.financials,
-                                ...cloudData.financials,
-                                models: cloudData.financials?.models || defaultContent.financials.models 
-                            },
+                            process: { ...defaultContent.process, ...cloudData.process, phases: cloudData.process?.phases || defaultContent.process.phases },
+                            financials: { ...defaultContent.financials, ...cloudData.financials, models: cloudData.financials?.models || defaultContent.financials.models },
                             comparison: cloudData.comparison || defaultContent.comparison,
                             showcase: cloudData.showcase || defaultContent.showcase,
                             faq: cloudData.faq || defaultContent.faq
@@ -501,28 +465,25 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
                 }
             } catch (e) {
                 console.error("Cloud fetch failed", e);
-                // Don't crash, fall through to local
             }
         }
 
-        // 3. Fallback to LocalStorage Content (Only if cloud failed or not configured)
+        // 4. Fallback to LocalStorage
         const savedContent = localStorage.getItem('onesip_content');
         if (savedContent) {
             try {
-            const parsed = JSON.parse(savedContent);
-            setContent(prev => ({
-                ...defaultContent,
-                ...parsed,
-                process: { ...defaultContent.process, ...parsed.process, phases: parsed.process?.phases || defaultContent.process.phases },
-                financials: { ...defaultContent.financials, ...parsed.financials, models: parsed.financials?.models || defaultContent.financials.models },
-                comparison: parsed.comparison || defaultContent.comparison,
-                showcase: parsed.showcase || defaultContent.showcase,
-                faq: parsed.faq || defaultContent.faq
-            }));
-            setDataSource('local');
-            } catch (e) {
-            console.error("Failed to parse local content", e);
-            }
+                const parsed = JSON.parse(savedContent);
+                setContent(prev => ({
+                    ...defaultContent,
+                    ...parsed,
+                    process: { ...defaultContent.process, ...parsed.process, phases: parsed.process?.phases || defaultContent.process.phases },
+                    financials: { ...defaultContent.financials, ...parsed.financials, models: parsed.financials?.models || defaultContent.financials.models },
+                    comparison: parsed.comparison || defaultContent.comparison,
+                    showcase: parsed.showcase || defaultContent.showcase,
+                    faq: parsed.faq || defaultContent.faq
+                }));
+                setDataSource('local');
+            } catch (e) {}
         } else {
             setDataSource('default');
         }
@@ -647,20 +608,27 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
   // --- Save Logic ---
   const saveChanges = async () => {
     setIsSyncing(true);
-    
-    // 1. Always save to LocalStorage (Cache)
     localStorage.setItem('onesip_content', JSON.stringify(content));
     
-    // 2. Try Cloud Save
-    if (cloudConfig.enabled && cloudConfig.binId && cloudConfig.apiKey) {
+    // Check config priority: Context state overrides, but usually initialized from config.ts
+    // If config.ts is set, use it.
+    let targetBin = cloudConfig.binId;
+    let targetKey = cloudConfig.apiKey;
+
+    if (APP_CONFIG.ENABLE_CLOUD_SYNC && APP_CONFIG.CLOUD_BIN_ID) {
+        targetBin = APP_CONFIG.CLOUD_BIN_ID;
+        targetKey = APP_CONFIG.CLOUD_API_KEY;
+    }
+
+    if (targetBin && targetKey) {
         try {
-            await saveCloudContent(cloudConfig.binId, cloudConfig.apiKey, content);
-            alert("同步成功！更改已保存到云端，所有用户将即时看到更新。");
+            await saveCloudContent(targetBin, targetKey, content);
+            alert("同步成功！更改已保存到云端。\n任何打开 App 的用户都会看到更新。");
         } catch (e) {
-            alert("本地保存成功，但云端同步失败。请检查您的网络或 API Key 设置。");
+            alert("本地保存成功，但云端同步失败。请检查网络。");
         }
     } else {
-        alert("已保存到本地浏览器缓存。\n提示：配置云端同步后可实现多端实时更新。");
+        alert("已保存到本地。\n注意：未配置 config.ts，其他用户无法看到这些更改。");
     }
     
     setIsSyncing(false);

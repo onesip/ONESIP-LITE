@@ -19,16 +19,16 @@
           extend: {
             colors: {
               brand: {
-                cream: '#FFFFFF',      // Changed to Pure White
-                surface: '#FAFAFA',    // Secondary Background (Vercel-like light gray)
-                border: '#EAEAEA',     // Subtle Borders
-                dark: '#000000',       // Pure Black text
-                gray: '#666666',       // Secondary text
+                cream: '#FFFFFF',      // Cards are white
+                surface: '#F2F2F7',    // Apple System Grey 6 (Background)
+                border: '#E5E5EA',     // Apple Separator Color
+                dark: '#000000',       
+                gray: '#8E8E93',       // Apple System Gray
                 green: {
-                  dark: '#113321',     // Deep Forest Green (High contrast)
-                  medium: '#2E5C46',   // Primary Action Green
-                  light: '#E6F0EB',    // Light accents
-                  pale: '#F5F9F7',     // Very subtle backgrounds
+                  dark: '#113321',     
+                  medium: '#2E5C46',   
+                  light: '#E6F0EB',    
+                  pale: '#F2F2F7',     
                 }
               }
             },
@@ -56,7 +56,8 @@
             },
             boxShadow: {
               'glass': '0 8px 30px rgba(0, 0, 0, 0.04)',
-              'subtle': '0 2px 10px rgba(0, 0, 0, 0.03)',
+              'subtle': '0 1px 3px rgba(0, 0, 0, 0.05)',
+              'app': '0 10px 40px -10px rgba(0,0,0,0.05)'
             }
           }
         }
@@ -66,20 +67,20 @@
       html, body {
         height: 100%;
         margin: 0;
-        background-color: #FFFFFF;
+        background-color: #F2F2F7; /* Apple System Background */
         color: #000000;
         -webkit-font-smoothing: antialiased;
       }
       /* Custom Scrollbar */
       ::-webkit-scrollbar { width: 6px; }
-      ::-webkit-scrollbar-track { background: #FFFFFF; }
-      ::-webkit-scrollbar-thumb { background: #EAEAEA; border-radius: 3px; }
-      ::-webkit-scrollbar-thumb:hover { background: #999; }
+      ::-webkit-scrollbar-track { background: #F2F2F7; }
+      ::-webkit-scrollbar-thumb { background: #C7C7CC; border-radius: 3px; }
+      ::-webkit-scrollbar-thumb:hover { background: #8E8E93; }
       
       .glass-panel {
-        background: rgba(255, 255, 255, 0.7);
-        backdrop-filter: blur(10px);
-        -webkit-backdrop-filter: blur(10px);
+        background: rgba(255, 255, 255, 0.8);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
         border: 1px solid rgba(0,0,0,0.05);
       }
     </style>
