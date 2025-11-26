@@ -18,7 +18,7 @@ import { LeadFormModal } from './components/LeadFormModal';
 import { useContent } from './contexts/ContentContext';
 import { Save, LogOut, EyeOff, Loader2 } from 'lucide-react';
 
-const SectionWrapper = ({ isVisible, isAdmin, children }: { isVisible: boolean, isAdmin: boolean, children: React.ReactNode }) => {
+const SectionWrapper = ({ isVisible, isAdmin, children }: { isVisible: boolean, isAdmin: boolean, children?: React.ReactNode }) => {
     if (!isVisible && !isAdmin) return null;
     
     return (

@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { SiteContent, MenuItem, HeroContent, SectionItem, FinancialModelItem, ProcessPhase, CloudConfig, ShowcaseItem, FAQItem, Lead, Language, LocalizedText } from '../types';
 import { fetchCloudContent, saveCloudContent } from '../services/storageService';
@@ -8,225 +7,7 @@ import { APP_CONFIG } from '../config';
 // Helper to create localized text
 const t = (zh: string, en: string): LocalizedText => ({ zh, en });
 
-// Data Migration Helper
-const migrateContent = (data: any): SiteContent => {
-    const migrated = { ...defaultContent, ...data };
-
-    const toLoc = (val: any, defZh: string, defEn: string): LocalizedText => {
-        // Case 1: Legacy String
-        if (typeof val === 'string') {
-             // Smart Migration: If matches default Chinese, use default English
-             if (val === defZh) return { zh: val, en: defEn };
-             return { zh: val, en: val }; 
-        }
-        // Case 2: Already Object
-        if (val && typeof val === 'object' && 'zh' in val) {
-            // Auto-Heal: If English is identical to Chinese (bad migration) AND Chinese matches default, restore default English
-            if (val.zh === val.en && val.zh === defZh && defZh !== defEn) {
-                return { zh: val.zh, en: defEn };
-            }
-            return val;
-        }
-        // Case 3: Missing/Null
-        return { zh: defZh, en: defEn };
-    };
-
-    // Migrate Hero
-    if (migrated.hero) {
-        migrated.hero.tagline = toLoc(migrated.hero.tagline, defaultContent.hero.tagline.zh, defaultContent.hero.tagline.en);
-        migrated.hero.titleLine1 = toLoc(migrated.hero.titleLine1, defaultContent.hero.titleLine1.zh, defaultContent.hero.titleLine1.en);
-        migrated.hero.titleLine2 = toLoc(migrated.hero.titleLine2, defaultContent.hero.titleLine2.zh, defaultContent.hero.titleLine2.en);
-        migrated.hero.subtitle = toLoc(migrated.hero.subtitle, defaultContent.hero.subtitle.zh, defaultContent.hero.subtitle.en);
-        migrated.hero.description = toLoc(migrated.hero.description, defaultContent.hero.description.zh, defaultContent.hero.description.en);
-        migrated.hero.buttonText = toLoc(migrated.hero.buttonText, defaultContent.hero.buttonText.zh, defaultContent.hero.buttonText.en);
-        migrated.hero.trustText = toLoc(migrated.hero.trustText, defaultContent.hero.trustText.zh, defaultContent.hero.trustText.en);
-    }
-
-    // Migrate Menu
-    if (migrated.menu) {
-        migrated.menu = migrated.menu.map((item: any) => ({
-            ...item,
-            name: toLoc(item.name, "Name", "Name"),
-            tag: toLoc(item.tag, "TAG", "TAG"),
-            desc: toLoc(item.desc, "Desc", "Desc"),
-            eng: item.eng || "" // Ensure string
-        }));
-    }
-
-    // Migrate Model
-    if (migrated.model) {
-        migrated.model.tagline = toLoc(migrated.model.tagline, defaultContent.model.tagline.zh, defaultContent.model.tagline.en);
-        migrated.model.title = toLoc(migrated.model.title, defaultContent.model.title.zh, defaultContent.model.title.en);
-        migrated.model.description = toLoc(migrated.model.description, defaultContent.model.description.zh, defaultContent.model.description.en);
-        if (migrated.model.items) {
-            migrated.model.items = migrated.model.items.map((item: any, i: number) => ({
-                ...item,
-                title: toLoc(item.title, defaultContent.model.items[i]?.title.zh || "", defaultContent.model.items[i]?.title.en || ""),
-                desc: toLoc(item.desc, defaultContent.model.items[i]?.desc.zh || "", defaultContent.model.items[i]?.desc.en || "")
-            }));
-        }
-    }
-
-    // Migrate Process
-    if (migrated.process) {
-        const p = migrated.process;
-        p.tagline = toLoc(p.tagline, defaultContent.process.tagline.zh, defaultContent.process.tagline.en);
-        p.title = toLoc(p.title, defaultContent.process.title.zh, defaultContent.process.title.en);
-        p.description = toLoc(p.description, defaultContent.process.description.zh, defaultContent.process.description.en);
-        if (p.phases) {
-            p.phases = p.phases.map((ph: any, i: number) => {
-                const defPh = defaultContent.process.phases[i] || defaultContent.process.phases[0];
-                return {
-                    ...ph,
-                    title: toLoc(ph.title, defPh.title.zh, defPh.title.en),
-                    subtitle: toLoc(ph.subtitle, defPh.subtitle.zh, defPh.subtitle.en),
-                    badge: toLoc(ph.badge, defPh.badge.zh, defPh.badge.en),
-                    benefitsTitle: toLoc(ph.benefitsTitle, defPh.benefitsTitle.zh, defPh.benefitsTitle.en),
-                    benefits: (ph.benefits || []).map((b: any, bi: number) => toLoc(b, defPh.benefits[bi]?.zh || "", defPh.benefits[bi]?.en || "")),
-                    obligationsTitle: toLoc(ph.obligationsTitle, defPh.obligationsTitle.zh, defPh.obligationsTitle.en),
-                    obligations: (ph.obligations || []).map((o: any, oi: number) => toLoc(o, defPh.obligations[oi]?.zh || "", defPh.obligations[oi]?.en || ""))
-                };
-            });
-        }
-    }
-
-    // Migrate Comparison
-    if (migrated.comparison) {
-        const c = migrated.comparison;
-        c.tagline = toLoc(c.tagline, defaultContent.comparison.tagline.zh, defaultContent.comparison.tagline.en);
-        c.title = toLoc(c.title, defaultContent.comparison.title.zh, defaultContent.comparison.title.en);
-        c.description = toLoc(c.description, defaultContent.comparison.description.zh, defaultContent.comparison.description.en);
-        c.col1Title = toLoc(c.col1Title, defaultContent.comparison.col1Title.zh, defaultContent.comparison.col1Title.en);
-        c.col2Title = toLoc(c.col2Title, defaultContent.comparison.col2Title.zh, defaultContent.comparison.col2Title.en);
-        c.col3Title = toLoc(c.col3Title, defaultContent.comparison.col3Title.zh, defaultContent.comparison.col3Title.en);
-        c.note1 = toLoc(c.note1, defaultContent.comparison.note1.zh, defaultContent.comparison.note1.en);
-        c.note2 = toLoc(c.note2, defaultContent.comparison.note2.zh, defaultContent.comparison.note2.en);
-
-        if (c.categories) {
-            c.categories = c.categories.map((cat: any, i: number) => {
-                const defCat = defaultContent.comparison.categories[i] || defaultContent.comparison.categories[0];
-                return {
-                    ...cat,
-                    title: toLoc(cat.title, defCat.title.zh, defCat.title.en),
-                    items: (cat.items || []).map((item: any, ii: number) => {
-                        const defItem = defCat.items[ii] || { name: { zh: "Item", en: "Item" } };
-                        return {
-                            ...item,
-                            name: toLoc(item.name, defItem.name.zh, defItem.name.en)
-                        }
-                    })
-                }
-            });
-        }
-    }
-
-    // Migrate Showcase
-    if (migrated.showcase) {
-        const s = migrated.showcase;
-        s.tagline = toLoc(s.tagline, defaultContent.showcase.tagline.zh, defaultContent.showcase.tagline.en);
-        s.title = toLoc(s.title, defaultContent.showcase.title.zh, defaultContent.showcase.title.en);
-        s.description = toLoc(s.description, defaultContent.showcase.description.zh, defaultContent.showcase.description.en);
-        if (s.items) {
-             s.items = s.items.map((item: any, i: number) => {
-                 const defItem = defaultContent.showcase.items[i] || defaultContent.showcase.items[0];
-                 return {
-                     ...item,
-                     title: toLoc(item.title, defItem.title.zh, defItem.title.en),
-                     desc: toLoc(item.desc, defItem.desc.zh, defItem.desc.en),
-                     tag: toLoc(item.tag, defItem.tag.zh, defItem.tag.en),
-                     statValue: toLoc(item.statValue, defItem.statValue.zh, defItem.statValue.en),
-                     statLabel: toLoc(item.statLabel, defItem.statLabel.zh, defItem.statLabel.en)
-                 };
-             });
-        }
-    }
-
-    // Migrate FAQ
-    if (migrated.faq) {
-         const f = migrated.faq;
-         f.tagline = toLoc(f.tagline, defaultContent.faq.tagline.zh, defaultContent.faq.tagline.en);
-         f.title = toLoc(f.title, defaultContent.faq.title.zh, defaultContent.faq.title.en);
-         f.description = toLoc(f.description, defaultContent.faq.description.zh, defaultContent.faq.description.en);
-         if (f.items) {
-             f.items = f.items.map((item: any, i: number) => {
-                 const defItem = defaultContent.faq.items[i] || defaultContent.faq.items[0];
-                 return {
-                     ...item,
-                     question: toLoc(item.question, defItem.question.zh, defItem.question.en),
-                     answer: toLoc(item.answer, defItem.answer.zh, defItem.answer.en)
-                 }
-             });
-         }
-    }
-
-    // Migrate MenuSection
-    if (migrated.menuSection) {
-        const m = migrated.menuSection;
-        m.tagline = toLoc(m.tagline, defaultContent.menuSection.tagline.zh, defaultContent.menuSection.tagline.en);
-        m.title = toLoc(m.title, defaultContent.menuSection.title.zh, defaultContent.menuSection.title.en);
-        m.description = toLoc(m.description, defaultContent.menuSection.description.zh, defaultContent.menuSection.description.en);
-    }
-
-    // Migrate Partner
-    if (migrated.partner) {
-         const p = migrated.partner;
-         p.title = toLoc(p.title, defaultContent.partner.title.zh, defaultContent.partner.title.en);
-         p.buttonText = toLoc(p.buttonText, defaultContent.partner.buttonText.zh, defaultContent.partner.buttonText.en);
-         p.disclaimer = toLoc(p.disclaimer, defaultContent.partner.disclaimer.zh, defaultContent.partner.disclaimer.en);
-         if (p.items) {
-             p.items = p.items.map((item: any, i: number) => {
-                 const defItem = defaultContent.partner.items[i] || defaultContent.partner.items[0];
-                 return {
-                     ...item,
-                     title: toLoc(item.title, defItem.title.zh, defItem.title.en),
-                     desc: toLoc(item.desc, defItem.desc.zh, defItem.desc.en)
-                 }
-             });
-         }
-    }
-
-    // Migrate Footer
-    if (migrated.footer) {
-         const f = migrated.footer;
-         f.aboutText = toLoc(f.aboutText, defaultContent.footer.aboutText.zh, defaultContent.footer.aboutText.en);
-         f.contactTitle = toLoc(f.contactTitle, defaultContent.footer.contactTitle.zh, defaultContent.footer.contactTitle.en);
-         f.resourceTitle = toLoc(f.resourceTitle, defaultContent.footer.resourceTitle.zh, defaultContent.footer.resourceTitle.en);
-    }
-
-    // Migrate Financials
-    if (migrated.financials) {
-        const f = migrated.financials;
-        f.tagline = toLoc(f.tagline, defaultContent.financials.tagline.zh, defaultContent.financials.tagline.en);
-        f.title = toLoc(f.title, defaultContent.financials.title.zh, defaultContent.financials.title.en);
-        f.description = toLoc(f.description, defaultContent.financials.description.zh, defaultContent.financials.description.en);
-        
-        f.labelSales = toLoc(f.labelSales, defaultContent.financials.labelSales.zh, defaultContent.financials.labelSales.en);
-        f.breakdownRevenue = toLoc(f.breakdownRevenue, defaultContent.financials.breakdownRevenue.zh, defaultContent.financials.breakdownRevenue.en);
-        f.breakdownMaterials = toLoc(f.breakdownMaterials, defaultContent.financials.breakdownMaterials.zh, defaultContent.financials.breakdownMaterials.en);
-        f.breakdownLabor = toLoc(f.breakdownLabor, defaultContent.financials.breakdownLabor.zh, defaultContent.financials.breakdownLabor.en);
-        f.breakdownRent = toLoc(f.breakdownRent, defaultContent.financials.breakdownRent.zh, defaultContent.financials.breakdownRent.en);
-        f.breakdownEquip = toLoc(f.breakdownEquip, defaultContent.financials.breakdownEquip.zh, defaultContent.financials.breakdownEquip.en);
-        f.breakdownMisc = toLoc(f.breakdownMisc, defaultContent.financials.breakdownMisc.zh, defaultContent.financials.breakdownMisc.en);
-        f.breakdownNet = toLoc(f.breakdownNet, defaultContent.financials.breakdownNet.zh, defaultContent.financials.breakdownNet.en);
-        f.aiButtonLoading = toLoc(f.aiButtonLoading, "Loading...", "Loading...");
-
-        if (f.models) {
-            f.models = f.models.map((m: any, i: number) => {
-                const defModel = defaultContent.financials.models[i] || defaultContent.financials.models[0];
-                return {
-                    ...m,
-                    name: toLoc(m.name, defModel.name.zh, defModel.name.en),
-                    pros: (m.pros || []).map((p: any, pi: number) => toLoc(p, defModel.pros[pi]?.zh || "", defModel.pros[pi]?.en || "")),
-                    cons: (m.cons || []).map((c: any, ci: number) => toLoc(c, defModel.cons[ci]?.zh || "", defModel.cons[ci]?.en || ""))
-                }
-            });
-        }
-    }
-
-    return migrated;
-};
-
-// 默认数据 (Bilingual)
+// 默认数据 (Bilingual) - MOVED UP for Migration Reference
 const defaultContent: SiteContent = {
   hero: {
     tagline: t("荷兰知名自动化饮品品牌", "Holland's Premium Automated Beverage Brand"),
@@ -587,6 +368,225 @@ const defaultContent: SiteContent = {
   },
   library: [],
   leads: []
+};
+
+// Data Migration Helper
+const migrateContent = (data: any): SiteContent => {
+    const migrated = { ...defaultContent, ...data };
+
+    const toLoc = (val: any, defZh: string, defEn: string): LocalizedText => {
+        // Case 1: Legacy String
+        if (typeof val === 'string') {
+             // Smart Migration: If matches default Chinese, use default English
+             if (val === defZh) return { zh: val, en: defEn };
+             // Otherwise use the string for both
+             return { zh: val, en: val }; 
+        }
+        // Case 2: Already Object
+        if (val && typeof val === 'object' && 'zh' in val) {
+            // Auto-Heal: If English is identical to Chinese (bad previous migration) AND Chinese matches default, restore default English
+            if (val.zh === val.en && val.zh === defZh && defZh !== defEn) {
+                return { zh: val.zh, en: defEn };
+            }
+            return val;
+        }
+        // Case 3: Missing/Null
+        return { zh: defZh, en: defEn };
+    };
+
+    // Migrate Hero
+    if (migrated.hero) {
+        migrated.hero.tagline = toLoc(migrated.hero.tagline, defaultContent.hero.tagline.zh, defaultContent.hero.tagline.en);
+        migrated.hero.titleLine1 = toLoc(migrated.hero.titleLine1, defaultContent.hero.titleLine1.zh, defaultContent.hero.titleLine1.en);
+        migrated.hero.titleLine2 = toLoc(migrated.hero.titleLine2, defaultContent.hero.titleLine2.zh, defaultContent.hero.titleLine2.en);
+        migrated.hero.subtitle = toLoc(migrated.hero.subtitle, defaultContent.hero.subtitle.zh, defaultContent.hero.subtitle.en);
+        migrated.hero.description = toLoc(migrated.hero.description, defaultContent.hero.description.zh, defaultContent.hero.description.en);
+        migrated.hero.buttonText = toLoc(migrated.hero.buttonText, defaultContent.hero.buttonText.zh, defaultContent.hero.buttonText.en);
+        migrated.hero.trustText = toLoc(migrated.hero.trustText, defaultContent.hero.trustText.zh, defaultContent.hero.trustText.en);
+    }
+
+    // Migrate Menu
+    if (migrated.menu) {
+        migrated.menu = migrated.menu.map((item: any) => ({
+            ...item,
+            name: toLoc(item.name, "Name", "Name"),
+            tag: toLoc(item.tag, "TAG", "TAG"),
+            desc: toLoc(item.desc, "Desc", "Desc"),
+            eng: item.eng || "" 
+        }));
+    }
+
+    // Migrate Model
+    if (migrated.model) {
+        migrated.model.tagline = toLoc(migrated.model.tagline, defaultContent.model.tagline.zh, defaultContent.model.tagline.en);
+        migrated.model.title = toLoc(migrated.model.title, defaultContent.model.title.zh, defaultContent.model.title.en);
+        migrated.model.description = toLoc(migrated.model.description, defaultContent.model.description.zh, defaultContent.model.description.en);
+        if (migrated.model.items) {
+            migrated.model.items = migrated.model.items.map((item: any, i: number) => ({
+                ...item,
+                title: toLoc(item.title, defaultContent.model.items[i]?.title.zh || "", defaultContent.model.items[i]?.title.en || ""),
+                desc: toLoc(item.desc, defaultContent.model.items[i]?.desc.zh || "", defaultContent.model.items[i]?.desc.en || "")
+            }));
+        }
+    }
+
+    // Migrate Process
+    if (migrated.process) {
+        const p = migrated.process;
+        p.tagline = toLoc(p.tagline, defaultContent.process.tagline.zh, defaultContent.process.tagline.en);
+        p.title = toLoc(p.title, defaultContent.process.title.zh, defaultContent.process.title.en);
+        p.description = toLoc(p.description, defaultContent.process.description.zh, defaultContent.process.description.en);
+        if (p.phases) {
+            p.phases = p.phases.map((ph: any, i: number) => {
+                const defPh = defaultContent.process.phases[i] || defaultContent.process.phases[0];
+                return {
+                    ...ph,
+                    title: toLoc(ph.title, defPh.title.zh, defPh.title.en),
+                    subtitle: toLoc(ph.subtitle, defPh.subtitle.zh, defPh.subtitle.en),
+                    badge: toLoc(ph.badge, defPh.badge.zh, defPh.badge.en),
+                    benefitsTitle: toLoc(ph.benefitsTitle, defPh.benefitsTitle.zh, defPh.benefitsTitle.en),
+                    benefits: (ph.benefits || []).map((b: any, bi: number) => toLoc(b, defPh.benefits[bi]?.zh || "", defPh.benefits[bi]?.en || "")),
+                    obligationsTitle: toLoc(ph.obligationsTitle, defPh.obligationsTitle.zh, defPh.obligationsTitle.en),
+                    obligations: (ph.obligations || []).map((o: any, oi: number) => toLoc(o, defPh.obligations[oi]?.zh || "", defPh.obligations[oi]?.en || ""))
+                };
+            });
+        }
+    }
+
+    // Migrate Comparison
+    if (migrated.comparison) {
+        const c = migrated.comparison;
+        c.tagline = toLoc(c.tagline, defaultContent.comparison.tagline.zh, defaultContent.comparison.tagline.en);
+        c.title = toLoc(c.title, defaultContent.comparison.title.zh, defaultContent.comparison.title.en);
+        c.description = toLoc(c.description, defaultContent.comparison.description.zh, defaultContent.comparison.description.en);
+        c.col1Title = toLoc(c.col1Title, defaultContent.comparison.col1Title.zh, defaultContent.comparison.col1Title.en);
+        c.col2Title = toLoc(c.col2Title, defaultContent.comparison.col2Title.zh, defaultContent.comparison.col2Title.en);
+        c.col3Title = toLoc(c.col3Title, defaultContent.comparison.col3Title.zh, defaultContent.comparison.col3Title.en);
+        c.note1 = toLoc(c.note1, defaultContent.comparison.note1.zh, defaultContent.comparison.note1.en);
+        c.note2 = toLoc(c.note2, defaultContent.comparison.note2.zh, defaultContent.comparison.note2.en);
+
+        if (c.categories) {
+            c.categories = c.categories.map((cat: any, i: number) => {
+                const defCat = defaultContent.comparison.categories[i] || defaultContent.comparison.categories[0];
+                return {
+                    ...cat,
+                    title: toLoc(cat.title, defCat.title.zh, defCat.title.en),
+                    items: (cat.items || []).map((item: any, ii: number) => {
+                        const defItem = defCat.items[ii] || { name: { zh: "Item", en: "Item" } };
+                        return {
+                            ...item,
+                            name: toLoc(item.name, defItem.name.zh, defItem.name.en)
+                        }
+                    })
+                }
+            });
+        }
+    }
+
+    // Migrate Showcase
+    if (migrated.showcase) {
+        const s = migrated.showcase;
+        s.tagline = toLoc(s.tagline, defaultContent.showcase.tagline.zh, defaultContent.showcase.tagline.en);
+        s.title = toLoc(s.title, defaultContent.showcase.title.zh, defaultContent.showcase.title.en);
+        s.description = toLoc(s.description, defaultContent.showcase.description.zh, defaultContent.showcase.description.en);
+        if (s.items) {
+             s.items = s.items.map((item: any, i: number) => {
+                 const defItem = defaultContent.showcase.items[i] || defaultContent.showcase.items[0];
+                 return {
+                     ...item,
+                     title: toLoc(item.title, defItem.title.zh, defItem.title.en),
+                     desc: toLoc(item.desc, defItem.desc.zh, defItem.desc.en),
+                     tag: toLoc(item.tag, defItem.tag.zh, defItem.tag.en),
+                     statValue: toLoc(item.statValue, defItem.statValue.zh, defItem.statValue.en),
+                     statLabel: toLoc(item.statLabel, defItem.statLabel.zh, defItem.statLabel.en)
+                 };
+             });
+        }
+    }
+
+    // Migrate FAQ
+    if (migrated.faq) {
+         const f = migrated.faq;
+         f.tagline = toLoc(f.tagline, defaultContent.faq.tagline.zh, defaultContent.faq.tagline.en);
+         f.title = toLoc(f.title, defaultContent.faq.title.zh, defaultContent.faq.title.en);
+         f.description = toLoc(f.description, defaultContent.faq.description.zh, defaultContent.faq.description.en);
+         if (f.items) {
+             f.items = f.items.map((item: any, i: number) => {
+                 const defItem = defaultContent.faq.items[i] || defaultContent.faq.items[0];
+                 return {
+                     ...item,
+                     question: toLoc(item.question, defItem.question.zh, defItem.question.en),
+                     answer: toLoc(item.answer, defItem.answer.zh, defItem.answer.en)
+                 }
+             });
+         }
+    }
+
+    // Migrate MenuSection
+    if (migrated.menuSection) {
+        const m = migrated.menuSection;
+        m.tagline = toLoc(m.tagline, defaultContent.menuSection.tagline.zh, defaultContent.menuSection.tagline.en);
+        m.title = toLoc(m.title, defaultContent.menuSection.title.zh, defaultContent.menuSection.title.en);
+        m.description = toLoc(m.description, defaultContent.menuSection.description.zh, defaultContent.menuSection.description.en);
+    }
+
+    // Migrate Partner
+    if (migrated.partner) {
+         const p = migrated.partner;
+         p.title = toLoc(p.title, defaultContent.partner.title.zh, defaultContent.partner.title.en);
+         p.buttonText = toLoc(p.buttonText, defaultContent.partner.buttonText.zh, defaultContent.partner.buttonText.en);
+         p.disclaimer = toLoc(p.disclaimer, defaultContent.partner.disclaimer.zh, defaultContent.partner.disclaimer.en);
+         if (p.items) {
+             p.items = p.items.map((item: any, i: number) => {
+                 const defItem = defaultContent.partner.items[i] || defaultContent.partner.items[0];
+                 return {
+                     ...item,
+                     title: toLoc(item.title, defItem.title.zh, defItem.title.en),
+                     desc: toLoc(item.desc, defItem.desc.zh, defItem.desc.en)
+                 }
+             });
+         }
+    }
+
+    // Migrate Footer
+    if (migrated.footer) {
+         const f = migrated.footer;
+         f.aboutText = toLoc(f.aboutText, defaultContent.footer.aboutText.zh, defaultContent.footer.aboutText.en);
+         f.contactTitle = toLoc(f.contactTitle, defaultContent.footer.contactTitle.zh, defaultContent.footer.contactTitle.en);
+         f.resourceTitle = toLoc(f.resourceTitle, defaultContent.footer.resourceTitle.zh, defaultContent.footer.resourceTitle.en);
+    }
+
+    // Migrate Financials
+    if (migrated.financials) {
+        const f = migrated.financials;
+        f.tagline = toLoc(f.tagline, defaultContent.financials.tagline.zh, defaultContent.financials.tagline.en);
+        f.title = toLoc(f.title, defaultContent.financials.title.zh, defaultContent.financials.title.en);
+        f.description = toLoc(f.description, defaultContent.financials.description.zh, defaultContent.financials.description.en);
+        
+        f.labelSales = toLoc(f.labelSales, defaultContent.financials.labelSales.zh, defaultContent.financials.labelSales.en);
+        f.breakdownRevenue = toLoc(f.breakdownRevenue, defaultContent.financials.breakdownRevenue.zh, defaultContent.financials.breakdownRevenue.en);
+        f.breakdownMaterials = toLoc(f.breakdownMaterials, defaultContent.financials.breakdownMaterials.zh, defaultContent.financials.breakdownMaterials.en);
+        f.breakdownLabor = toLoc(f.breakdownLabor, defaultContent.financials.breakdownLabor.zh, defaultContent.financials.breakdownLabor.en);
+        f.breakdownRent = toLoc(f.breakdownRent, defaultContent.financials.breakdownRent.zh, defaultContent.financials.breakdownRent.en);
+        f.breakdownEquip = toLoc(f.breakdownEquip, defaultContent.financials.breakdownEquip.zh, defaultContent.financials.breakdownEquip.en);
+        f.breakdownMisc = toLoc(f.breakdownMisc, defaultContent.financials.breakdownMisc.zh, defaultContent.financials.breakdownMisc.en);
+        f.breakdownNet = toLoc(f.breakdownNet, defaultContent.financials.breakdownNet.zh, defaultContent.financials.breakdownNet.en);
+        f.aiButtonLoading = toLoc(f.aiButtonLoading, "Loading...", "Loading...");
+
+        if (f.models) {
+            f.models = f.models.map((m: any, i: number) => {
+                const defModel = defaultContent.financials.models[i] || defaultContent.financials.models[0];
+                return {
+                    ...m,
+                    name: toLoc(m.name, defModel.name.zh, defModel.name.en),
+                    pros: (m.pros || []).map((p: any, pi: number) => toLoc(p, defModel.pros[pi]?.zh || "", defModel.pros[pi]?.en || "")),
+                    cons: (m.cons || []).map((c: any, ci: number) => toLoc(c, defModel.cons[ci]?.zh || "", defModel.cons[ci]?.en || ""))
+                }
+            });
+        }
+    }
+
+    return migrated;
 };
 
 interface ContentContextType {

@@ -16,6 +16,51 @@ interface DetailedModelData {
   profit: number;
 }
 
+// --- Configuration Parameters ---
+// Adjusted structure to easily match external spreadsheets
+const MODEL_PARAMS = {
+  A: { // Model A: DIY (Traditional Self-made)
+    price: 5.0,
+    cogsRate: 0.35,      // Material Cost % (Higher due to waste)
+    laborFixed: 2500,    // Full time staff needed
+    rent: 0,             // Existing space
+    equipFixed: 100,     // Minimal maintenance
+    misc: 200,
+    capCups: 45          // Max capacity limit for manual process
+  },
+  B: { // Model B: Rental Machine
+    price: 4.5,          // Lower perceived value
+    cogsRate: 0.30,      // Material Cost %
+    laborFixed: 1200,    // Part time
+    rent: 0,
+    equipFixed: 650,     // Fixed Rental Fee
+    misc: 200,
+    capCups: 60          // Machine speed limit
+  },
+  C: { // Model C: Franchise Store
+    price: 6.0,          // Premium pricing
+    cogsRate: 0.25,      // Material Cost % (Bulk efficiency)
+    laborFixed: 5000,    // High labor (2 Full + 1 Part)
+    rent: 2500,          // Dedicated space rent
+    equipFixed: 800,     // Equipment depreciation
+    misc: 1000           // Marketing & Utilities
+  },
+  D: { // Model D: ONESIP LITE
+    price: 5.0,
+    cogsRate: 0.28,      // Competitive supply chain
+    rent: 0,             // Existing space
+    systemFee: 899,      // Monthly SaaS/Machine Fee
+    brandFeeRate: 0.07,  // Revenue Share
+    misc: 100,
+    // Dynamic Labor: Depends on volume (Elastic)
+    laborLevels: [
+      { maxCups: 30, cost: 0 },    // Idle staff handles it
+      { maxCups: 80, cost: 900 },  // Slight extra help
+      { maxCups: Infinity, cost: 1800 } // Busy
+    ]
+  }
+};
+
 export const FinancialsSection = () => {
   const { content, updateSection, updateFinancialModel, updateFinancialModelDetail, language } = useContent();
   const { financials } = content;
@@ -31,7 +76,6 @@ export const FinancialsSection = () => {
 
   // --- Comprehensive Calculation Logic for EACH Model ---
   const calculateDetails = (modelId: string, cups: number): DetailedModelData => {
-      let price = 5.0; // Avg price
       let revenue = 0;
       let costMaterials = 0;
       let costLabor = 0;
@@ -39,59 +83,58 @@ export const FinancialsSection = () => {
       let costEquip = 0;
       let costMisc = 0;
 
-      // Model A: DIY (Cheap start, unstable, hidden labor)
       if (modelId === 'A') {
-          price = 5.0;
-          const effectiveCups = Math.min(cups, 45);
-          revenue = effectiveCups * daysPerMonth * price;
+          const params = MODEL_PARAMS.A;
+          // Apply capacity cap
+          const effectiveCups = Math.min(cups, params.capCups);
           
-          costMaterials = revenue * 0.35; // Higher waste
-          costLabor = 2500; // Full time staff needed for manual work
-          costRent = 0; // Existing space
-          costEquip = 100; // Minimal maintenance
-          costMisc = 200;
+          revenue = effectiveCups * daysPerMonth * params.price;
+          costMaterials = revenue * params.cogsRate;
+          costLabor = params.laborFixed;
+          costRent = params.rent;
+          costEquip = params.equipFixed;
+          costMisc = params.misc;
       }
-      // Model B: Rental Machine (Simple, no brand, fixed rent)
       else if (modelId === 'B') {
-          price = 4.5; // Lower perceive value
-          const effectiveCups = Math.min(cups, 60);
-          revenue = effectiveCups * daysPerMonth * price;
+          const params = MODEL_PARAMS.B;
+          const effectiveCups = Math.min(cups, params.capCups);
 
-          costMaterials = revenue * 0.30;
-          costLabor = 1200; // Part time
-          costRent = 0;
-          costEquip = 650; // Fixed Rental Fee
-          costMisc = 200;
+          revenue = effectiveCups * daysPerMonth * params.price;
+          costMaterials = revenue * params.cogsRate;
+          costLabor = params.laborFixed;
+          costRent = params.rent;
+          costEquip = params.equipFixed;
+          costMisc = params.misc;
       }
-      // Model C: Traditional Franchise Store (High Cap, High Cost)
       else if (modelId === 'C') {
-          price = 6.0; // Premium
-          revenue = cups * daysPerMonth * price;
+          const params = MODEL_PARAMS.C;
+          revenue = cups * daysPerMonth * params.price;
 
-          costMaterials = revenue * 0.25; // Bulk buying
-          costLabor = 5000; // 2 Full time + 1 Part time
-          costRent = 2500; // Dedicated space
-          costEquip = 800; // Depreciation
-          costMisc = 1000; // Utilities, Marketing
+          costMaterials = revenue * params.cogsRate;
+          costLabor = params.laborFixed;
+          costRent = params.rent;
+          costEquip = params.equipFixed;
+          costMisc = params.misc;
       }
-      // Model D: ONESIP LITE (Automated, Rev Share)
       else if (modelId === 'D') {
-          price = 5.0;
-          revenue = cups * daysPerMonth * price;
+          const params = MODEL_PARAMS.D;
+          revenue = cups * daysPerMonth * params.price;
 
-          costMaterials = revenue * 0.28; // Competitive supply chain
-          // Elastic Labor: 0 if low volume (staff idle time), small if high volume
-          if (cups < 30) costLabor = 0;
-          else if (cups < 80) costLabor = 900;
-          else costLabor = 1800;
+          costMaterials = revenue * params.cogsRate;
+          
+          // Calculate Dynamic Labor
+          const laborLevel = params.laborLevels.find(l => cups <= l.maxCups) || params.laborLevels[params.laborLevels.length - 1];
+          costLabor = laborLevel.cost;
 
-          costRent = 0;
-          // 899 System Fee + 7% Brand Fee
-          costEquip = 899 + (revenue * 0.07); 
-          costMisc = 100;
+          costRent = params.rent;
+          
+          // Formula: System Fee + (Revenue * Brand %)
+          costEquip = params.systemFee + (revenue * params.brandFeeRate);
+          costMisc = params.misc;
       }
 
       const totalCost = costMaterials + costLabor + costRent + costEquip + costMisc;
+      
       return {
           revenue,
           costMaterials,

@@ -89,9 +89,16 @@ export const ComparisonSection = () => {
                                 <div className="space-y-1">
                                     {cat.items.map((item, rowIdx) => {
                                         // Safely extract Chinese name for logic checks, handling legacy string data
-                                        const itemNameZh = typeof item.name === 'string' 
-                                            ? item.name 
-                                            : (item.name?.zh || "");
+                                        // We ensure itemNameZh is strictly a string to avoid .includes crashes
+                                        let itemNameZh = "";
+                                        
+                                        if (item.name) {
+                                            if (typeof item.name === 'string') {
+                                                itemNameZh = item.name;
+                                            } else if (item.name.zh) {
+                                                itemNameZh = item.name.zh;
+                                            }
+                                        }
 
                                         return (
                                         <div key={rowIdx} className="grid grid-cols-12 items-center py-4 px-4 hover:bg-gray-50 rounded-lg transition-colors group relative">
