@@ -309,7 +309,7 @@ const DashboardSettings = () => {
                  </div>
              </div>
              
-             {/* --- DEPLOYMENT GUIDE --- */}
+             {/* --- DEPLOYMENT GUIDE (UPDATED FOR CONFIG.TS) --- */}
              <div className="bg-[#1C1C1E] border border-white/5 rounded-3xl p-8">
                  <div className="flex items-start gap-6">
                      <div className="w-16 h-16 rounded-2xl bg-pink-500/20 text-pink-400 flex items-center justify-center shrink-0">
@@ -317,44 +317,21 @@ const DashboardSettings = () => {
                      </div>
                      <div className="flex-1">
                          <h3 className="text-2xl font-bold text-white mb-2">如何发布上线？</h3>
-                         <p className="text-gray-400 leading-relaxed mb-6">
-                             想要让大家都能访问您的网站？推荐使用 <strong>Vercel</strong> 免费托管。
-                             <br/>
-                             在部署时，您需要在 Vercel 中填入以下 <strong>环境变量 (Environment Variables)</strong>，否则访客将看不到您的更新。
+                         <div className="bg-green-500/10 border border-green-500/20 rounded-xl p-4 mb-6">
+                            <p className="text-green-400 text-sm font-bold flex items-center gap-2">
+                                <CheckCircle2 size={16}/> 您的发布流程已简化！
+                            </p>
+                            <p className="text-gray-400 text-xs mt-1">
+                                因为您已经配置了 <code>config.ts</code> 文件，您不需要在 Vercel 后台手动设置任何环境变量。
+                            </p>
+                         </div>
+                         
+                         <p className="text-gray-400 leading-relaxed mb-6 text-sm">
+                             1. 将代码推送到 GitHub。<br/>
+                             2. 在 Vercel 中导入项目。<br/>
+                             3. <strong>直接点击 Deploy</strong> 即可！<br/><br/>
+                             发布成功后，您的网站就拥有了“云端记忆”。您在后台做的任何修改，都会即时同步给所有访问者，**无需再次 Deploy**。
                          </p>
-                         
-                         <div className="bg-[#111211] rounded-xl border border-white/5 overflow-hidden">
-                             <div className="grid grid-cols-12 bg-white/5 p-3 text-xs font-bold text-gray-500 border-b border-white/5">
-                                 <div className="col-span-3">Key Name (变量名)</div>
-                                 <div className="col-span-7">Value (值)</div>
-                                 <div className="col-span-2 text-right">Action</div>
-                             </div>
-                             
-                             {/* Var 1 */}
-                             <div className="grid grid-cols-12 p-4 text-sm border-b border-white/5 items-center">
-                                 <div className="col-span-3 text-pink-400 font-mono select-all">REACT_APP_CLOUD_BIN_ID</div>
-                                 <div className="col-span-7 font-mono text-gray-400 truncate pr-4">{localBinId || "请先在上方生成 Bin ID"}</div>
-                                 <div className="col-span-2 text-right">
-                                     <button onClick={() => handleCopy(localBinId)} className="text-xs bg-white/10 hover:bg-white/20 text-white px-3 py-1.5 rounded-lg transition">复制</button>
-                                 </div>
-                             </div>
-
-                             {/* Var 2 */}
-                             <div className="grid grid-cols-12 p-4 text-sm items-center">
-                                 <div className="col-span-3 text-pink-400 font-mono select-all">REACT_APP_CLOUD_API_KEY</div>
-                                 <div className="col-span-7 font-mono text-gray-400 truncate pr-4">
-                                     {localApiKey ? "••••••••••••••••••••••" : "请先在上方填入 API Key"}
-                                 </div>
-                                 <div className="col-span-2 text-right">
-                                     <button onClick={() => handleCopy(localApiKey)} className="text-xs bg-white/10 hover:bg-white/20 text-white px-3 py-1.5 rounded-lg transition">复制</button>
-                                 </div>
-                             </div>
-                         </div>
-                         
-                         <div className="mt-6 text-xs text-gray-500 flex gap-2">
-                             <AlertCircle size={14} className="shrink-0"/>
-                             <p>注意：在公共网络上使用 Master Key 存在一定风险。为了演示方便，您可以直接使用。如果是正式商业项目，建议在 JSONBin 后台另外创建一个只读的 Access Key。</p>
-                         </div>
                      </div>
                  </div>
              </div>
