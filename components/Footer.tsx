@@ -45,29 +45,28 @@ export const Footer = ({ onOpenAdmin }: { onOpenAdmin?: () => void }) => {
         </div>
         
         <div className="border-t border-brand-green-light/20 pt-8 flex flex-col md:flex-row justify-between items-center text-xs text-brand-green-light">
-          <div className="flex flex-col md:flex-row items-center gap-4">
+          <div className="flex items-center gap-4">
              <p><EditableText value={footer.copyright} onSave={(val) => updateSection('footer', 'copyright', val)} /></p>
              
-             {/* CONNECTION STATUS INDICATOR (Enhanced Visibility) */}
-             <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-white border border-brand-green-dark/10 shadow-sm" title={`当前数据源: ${dataSource}`}>
-                <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Status:</span>
+             {/* CONNECTION STATUS INDICATOR */}
+             <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-black/5" title={`当前数据源: ${dataSource}`}>
                 {dataSource === 'cloud' && (
-                    <div className="flex items-center gap-1.5 text-green-600">
-                        <Cloud size={12} fill="currentColor" className="opacity-20"/>
-                        <span className="text-[10px] font-bold">ONLINE</span>
-                    </div>
+                    <>
+                        <Cloud size={10} className="text-green-600" />
+                        <span className="text-[9px] font-bold text-green-700">CLOUD SYNCED</span>
+                    </>
                 )}
                 {dataSource === 'local' && (
-                    <div className="flex items-center gap-1.5 text-orange-500">
-                        <HardDrive size={12} />
-                        <span className="text-[10px] font-bold">LOCAL</span>
-                    </div>
+                    <>
+                        <HardDrive size={10} className="text-orange-500" />
+                        <span className="text-[9px] font-bold text-orange-600">LOCAL (ADMIN)</span>
+                    </>
                 )}
                 {dataSource === 'default' && (
-                    <div className="flex items-center gap-1.5 text-red-400">
-                        <AlertCircle size={12} />
-                        <span className="text-[10px] font-bold">OFFLINE</span>
-                    </div>
+                    <>
+                        <AlertCircle size={10} className="text-gray-400" />
+                        <span className="text-[9px] font-bold text-gray-500">OFFLINE / NO CONFIG</span>
+                    </>
                 )}
              </div>
           </div>

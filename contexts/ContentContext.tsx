@@ -437,74 +437,75 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
       setIsLoading(true);
       
       try {
-        // 1. Load Cloud Config from LocalStorage (for Admin)
-        const savedCloudConfig = localStorage.getItem('onesip_cloud_config');
-        let currentConfig: CloudConfig = { enabled: false, binId: '', apiKey: '' };
-        let sourceFromEnv = false;
-
-        if (savedCloudConfig) {
-            try {
-                currentConfig = JSON.parse(savedCloudConfig);
-            } catch (e) {
-                console.error("Failed to parse cloud config", e);
-            }
-        } 
-        
-        // CRITICAL: Safe Env Access (For Visitors)
-        // If local storage is empty OR we are forcing environment vars, check env
+        // --- PRIORITY CHANGE FOR SEAMLESS SYNC ---
+        // 1. Check Env Vars FIRST. If they exist, we assume "Production Mode" and force cloud use.
+        // This solves the "user has to open backend" issue.
         const envBinId = getEnv('REACT_APP_CLOUD_BIN_ID');
         const envApiKey = getEnv('REACT_APP_CLOUD_API_KEY');
         
-        // If config is missing locally, OR if we have valid env vars, use env vars
-        if ((!currentConfig.apiKey || !currentConfig.binId) && envBinId && envApiKey) {
+        let currentConfig: CloudConfig = { enabled: false, binId: '', apiKey: '' };
+        
+        // Local config (Admin override)
+        const savedCloudConfig = localStorage.getItem('onesip_cloud_config');
+        if (savedCloudConfig) {
+            try {
+                const parsed = JSON.parse(savedCloudConfig);
+                // Only use local if it's explicitly enabled, otherwise prefer Env
+                if (parsed.enabled) {
+                    currentConfig = parsed;
+                }
+            } catch (e) {}
+        }
+
+        // If Env vars exist, they override everything for general visitors
+        if (envBinId && envApiKey) {
             currentConfig = {
                 enabled: true,
                 binId: envBinId,
                 apiKey: envApiKey
             };
-            sourceFromEnv = true;
-            console.log("Found Vercel Environment Variables. Attempting Cloud Sync.");
+            console.log("Environment Variables Detected. Auto-connecting to Cloud.");
         }
 
         setCloudConfig(currentConfig);
 
-        // 2. Fetch Content (Cloud priority, then Local)
+        // 2. Fetch Content
+        // If we have a config, try fetching cloud FIRST
         if (currentConfig.enabled && currentConfig.binId && currentConfig.apiKey) {
             try {
-            const cloudData = await fetchCloudContent(currentConfig.binId, currentConfig.apiKey);
-            if (cloudData) {
-                // Merge with default to ensure structure integrity
-                setContent(prev => ({
-                    ...defaultContent,
-                    ...cloudData,
-                        process: {
-                            ...defaultContent.process,
-                            ...cloudData.process,
-                            phases: cloudData.process?.phases || defaultContent.process.phases
-                        },
-                        financials: {
-                            ...defaultContent.financials,
-                            ...cloudData.financials,
-                            models: cloudData.financials?.models || defaultContent.financials.models 
-                        },
-                        comparison: cloudData.comparison || defaultContent.comparison,
-                        showcase: cloudData.showcase || defaultContent.showcase,
-                        faq: cloudData.faq || defaultContent.faq
-                }));
-                setDataSource('cloud');
-                setIsLoading(false);
-                clearTimeout(timeoutId);
-                return; // Exit if cloud fetch successful
-            }
+                console.log("Fetching from Cloud...", currentConfig.binId);
+                const cloudData = await fetchCloudContent(currentConfig.binId, currentConfig.apiKey);
+                if (cloudData) {
+                    // Merge with default to ensure structure integrity
+                    setContent(prev => ({
+                        ...defaultContent,
+                        ...cloudData,
+                            process: {
+                                ...defaultContent.process,
+                                ...cloudData.process,
+                                phases: cloudData.process?.phases || defaultContent.process.phases
+                            },
+                            financials: {
+                                ...defaultContent.financials,
+                                ...cloudData.financials,
+                                models: cloudData.financials?.models || defaultContent.financials.models 
+                            },
+                            comparison: cloudData.comparison || defaultContent.comparison,
+                            showcase: cloudData.showcase || defaultContent.showcase,
+                            faq: cloudData.faq || defaultContent.faq
+                    }));
+                    setDataSource('cloud');
+                    setIsLoading(false);
+                    clearTimeout(timeoutId);
+                    return; // EXIT HERE IF SUCCESSFUL
+                }
             } catch (e) {
-                console.error("Cloud fetch failed, falling back to local", e);
-                // Fallthrough to local
+                console.error("Cloud fetch failed", e);
+                // Don't crash, fall through to local
             }
-        } else {
-             console.warn("No Cloud Config found (neither in LocalStorage nor Env Vars).");
         }
 
-        // 3. Fallback to LocalStorage Content (Only for Admin who might have edited offline)
+        // 3. Fallback to LocalStorage Content (Only if cloud failed or not configured)
         const savedContent = localStorage.getItem('onesip_content');
         if (savedContent) {
             try {
@@ -512,7 +513,6 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
             setContent(prev => ({
                 ...defaultContent,
                 ...parsed,
-                // Deep merge safety
                 process: { ...defaultContent.process, ...parsed.process, phases: parsed.process?.phases || defaultContent.process.phases },
                 financials: { ...defaultContent.financials, ...parsed.financials, models: parsed.financials?.models || defaultContent.financials.models },
                 comparison: parsed.comparison || defaultContent.comparison,

@@ -21,7 +21,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeSection, scrollToSection, 
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Define all possible nav items with their corresponding visibility state
+  // Define all possible nav items
   const allNavItems = [
     { id: 'model', label: "模式", isVisible: content.model.isVisible },
     { id: 'showcase', label: "案例", isVisible: content.showcase.isVisible },
@@ -31,32 +31,30 @@ export const Navbar: React.FC<NavbarProps> = ({ activeSection, scrollToSection, 
     { id: 'faq', label: "问答", isVisible: content.faq.isVisible },
   ];
 
-  // Admins see all items (to access/edit hidden sections), Visitors only see visible ones
   const navItems = allNavItems.filter(item => item.isVisible || isAdmin);
 
   return (
-    <nav className={`fixed top-0 w-full z-50 transition-all duration-500 ease-in-out ${scrolled ? 'bg-brand-cream/80 backdrop-blur-md border-b border-brand-green-dark/5 py-4' : 'bg-transparent py-8'}`}>
+    <nav className={`fixed top-0 w-full z-50 transition-all duration-300 ease-in-out ${scrolled ? 'bg-white/80 backdrop-blur-md border-b border-brand-border py-3' : 'bg-transparent py-6'}`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center">
-          <div onClick={() => scrollToSection('hero')} className="transform hover:scale-105 transition-transform duration-300">
-            <BrandLogo />
+          <div onClick={() => scrollToSection('hero')} className="transform hover:opacity-80 transition-opacity">
+            <BrandLogo dark={true} />
           </div>
 
           {/* Desktop Nav */}
-          <div className="hidden md:flex items-center space-x-1 bg-white/50 backdrop-blur-sm px-2 py-1.5 rounded-full border border-brand-green-dark/5 shadow-sm">
+          <div className="hidden md:flex items-center space-x-1">
             {navItems.map((item) => (
               <button
                 key={item.id}
                 onClick={() => scrollToSection(item.id)}
-                className={`group relative px-4 py-2 rounded-full text-sm font-bold transition-all duration-300 ${
+                className={`relative px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 ${
                   activeSection === item.id
-                    ? 'text-brand-cream bg-brand-green-dark shadow-md'
-                    : 'text-brand-green-medium hover:text-brand-green-dark hover:bg-white/50'
+                    ? 'text-brand-dark font-bold'
+                    : 'text-brand-gray hover:text-brand-dark hover:bg-brand-surface'
                 }`}
               >
-                {/* Visual indicator for Admin if item is hidden from public */}
                 {isAdmin && !item.isVisible && (
-                    <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse" title="该板块已隐藏"></span>
+                    <span className="absolute top-1 right-1 w-1.5 h-1.5 bg-red-500 rounded-full" title="Hidden"></span>
                 )}
                 {item.label}
               </button>
@@ -64,27 +62,26 @@ export const Navbar: React.FC<NavbarProps> = ({ activeSection, scrollToSection, 
           </div>
 
           {/* CTA Button & Admin Lock */}
-          <div className="hidden md:flex items-center gap-4">
+          <div className="hidden md:flex items-center gap-3">
             <button
               onClick={() => scrollToSection('contact')}
-              className="bg-brand-dark text-brand-cream px-6 py-2.5 rounded-full font-bold text-sm hover:bg-brand-green-dark transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 border border-transparent"
+              className="bg-brand-dark text-white px-5 py-2 rounded-md font-bold text-xs hover:bg-black transition-all shadow-subtle border border-transparent hover:border-gray-800"
             >
               立即加盟
             </button>
             
-            {/* Admin Entry - Navbar Icon */}
             <button 
               onClick={onOpenAdmin}
-              className="w-10 h-10 rounded-full flex items-center justify-center text-brand-green-light hover:text-brand-green-dark hover:bg-brand-green-dark/5 transition-colors"
+              className="w-8 h-8 rounded-md flex items-center justify-center text-brand-gray hover:text-brand-dark hover:bg-brand-surface transition-colors"
               title="Admin Login"
             >
-              <Lock size={16} />
+              <Lock size={14} />
             </button>
           </div>
 
           {/* Mobile Menu Toggle */}
           <div className="md:hidden flex items-center gap-4">
-            <button onClick={() => setIsOpen(!isOpen)} className="text-brand-green-dark p-2 hover:bg-brand-green-pale/20 rounded-lg transition">
+            <button onClick={() => setIsOpen(!isOpen)} className="text-brand-dark p-2 hover:bg-brand-surface rounded-md transition">
               {isOpen ? <X size={24} /> : <Menu size={24} />}
             </button>
           </div>
@@ -93,8 +90,8 @@ export const Navbar: React.FC<NavbarProps> = ({ activeSection, scrollToSection, 
 
       {/* Mobile Menu */}
       {isOpen && (
-        <div className="md:hidden bg-brand-cream absolute w-full border-b border-brand-green-light shadow-2xl animate-fade-in-up">
-          <div className="px-4 pt-4 pb-8 space-y-3">
+        <div className="md:hidden bg-white absolute w-full border-b border-brand-border shadow-lg animate-fade-in-up">
+          <div className="px-4 pt-4 pb-8 space-y-2">
             {navItems.map((item) => (
               <button
                 key={item.id}
@@ -102,33 +99,19 @@ export const Navbar: React.FC<NavbarProps> = ({ activeSection, scrollToSection, 
                   scrollToSection(item.id);
                   setIsOpen(false);
                 }}
-                className="flex items-center justify-between px-6 py-4 rounded-2xl text-lg font-bold text-brand-green-dark hover:bg-white hover:shadow-sm w-full text-left transition-all border border-transparent hover:border-brand-green-dark/5"
+                className="flex items-center justify-between px-4 py-3 rounded-lg text-base font-medium text-brand-dark hover:bg-brand-surface w-full text-left transition-all"
               >
                 {item.label}
                 {isAdmin && !item.isVisible && (
-                    <span className="text-xs bg-red-100 text-red-500 px-2 py-1 rounded-full border border-red-200">
-                        隐藏中
-                    </span>
+                    <span className="text-[10px] bg-red-100 text-red-500 px-1.5 py-0.5 rounded font-bold">Hidden</span>
                 )}
               </button>
             ))}
             <button
               onClick={() => scrollToSection('contact')}
-              className="block w-full bg-brand-green-dark text-white px-6 py-4 rounded-2xl font-bold text-center mt-6 text-lg shadow-xl"
+              className="block w-full bg-brand-dark text-white px-6 py-3.5 rounded-lg font-bold text-center mt-6 text-sm shadow-md"
             >
               立即加盟
-            </button>
-            
-            {/* Mobile Admin Entry */}
-            <button
-              onClick={() => {
-                onOpenAdmin();
-                setIsOpen(false);
-              }}
-              className="flex items-center justify-center gap-2 w-full mt-4 py-3 text-brand-green-light hover:text-brand-green-dark"
-            >
-               <Lock size={16} />
-               <span className="text-sm font-bold">Admin Login</span>
             </button>
           </div>
         </div>
