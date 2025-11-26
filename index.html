@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="zh-CN">
   <head>
@@ -46,6 +47,10 @@
       }
     </script>
     <style>
+      html, body {
+        height: 100%;
+        margin: 0;
+      }
       body {
         background-color: #F8F6EF;
         color: #111211;
@@ -57,6 +62,14 @@
       ::-webkit-scrollbar-thumb { background: #929E95; border-radius: 4px; }
       ::-webkit-scrollbar-thumb:hover { background: #607A69; }
     </style>
+    
+    <!-- CRITICAL: Polyfill for process.env to prevent blank screen crash in browser environments -->
+    <script>
+      if (typeof process === 'undefined') {
+        window.process = { env: {} };
+      }
+    </script>
+
   <script type="importmap">
 {
   "imports": {
@@ -71,6 +84,21 @@
 </script>
 </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+        <!-- Initial Loading State (Visible before React mounts) -->
+        <div style="height: 100vh; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; background-color: #F8F6EF;">
+            <div style="width: 64px; height: 64px; background-color: #465D4E; border-radius: 16px; display: flex; align-items: center; justify-content: center; margin-bottom: 20px;">
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="width: 32px; height: 32px; color: #F8F6EF;">
+                    <path d="M12 9.5C12 9.5 13.5 3.5 17.5 4.5C19.5 5 17.5 8.5 12 9.5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <circle cx="12" cy="14" r="7.5" stroke="currentColor" stroke-width="2" />
+                    <path d="M8.5 15.5C8.5 15.5 10.5 17.5 14 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                    <circle cx="15.5" cy="16" r="1" fill="currentColor" />
+                </svg>
+            </div>
+            <div style="font-family: sans-serif; font-weight: bold; font-size: 12px; color: #465D4E; letter-spacing: 0.1em; text-transform: uppercase;">
+                Loading ONESIP...
+            </div>
+        </div>
+    </div>
   </body>
 </html>
