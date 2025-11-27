@@ -2,7 +2,6 @@ import React from 'react';
 import { useContent } from '../contexts/ContentContext';
 import { EditableText, EditableImage } from './ui/Editable';
 import { Plus, Trash2 } from 'lucide-react';
-import { LocalizedText } from '../types';
 
 export const MenuSection = () => {
   const { content, updateMenuItem, addMenuItem, deleteMenuItem, isAdmin, updateSection, language } = useContent();
@@ -64,7 +63,7 @@ export const MenuSection = () => {
                   </div>
                   
                   <div className="text-brand-green-light text-[10px] font-bold uppercase tracking-wider mb-3">
-                    <EditableText value={(item.eng as unknown as LocalizedText)[language] || item.eng} onSave={(val) => updateMenuItem(item.id, 'eng', val)} />
+                    <EditableText value={item.eng} onSave={(val) => updateMenuItem(item.id, 'eng', val)} />
                   </div>
                   
                   <div className="text-brand-green-medium/80 text-sm leading-relaxed mb-4 flex-grow line-clamp-3 font-light">
