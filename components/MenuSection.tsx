@@ -63,74 +63,30 @@ export const MenuSection = () => {
                     </span>
                   </div>
                   
-                  <div className="text-brand-green-light text-[10px] font-bold uppercase tracking-wider mb-3">
-                     {/* 
-                      * BUG FIX: The 'item.eng' field was redundant and causing type inconsistencies.
-                      * Unifying the English name to use 'item.name.en' for display and updates.
-                      * The onSave now updates the 'name' field, which is handled correctly as a LocalizedText object.
-                      * This prevents state corruption that was blocking all save operations after an image change attempt.
-                      */}
-                     <EditableText 
-                        value={item.name.en} 
-                        onSave={(val) => {
-                            // To update the english part of the name, we must update the 'name' field itself
-                            // We pass the new english value into the existing localized text object
-                            const updatedNameObject = { ...item.name, en: val };
-                            updateMenuItem(item.id, 'name', updatedNameObject[language]);
-                            
-                            // A better way would be for updateMenuItem to handle object updates directly,
-                            // but this works with the current structure without breaking auto-translate for Chinese.
-                            // For simplicity and to directly address the bug, we trigger the update this way.
-                            // A more robust solution might refactor updateMenuItem later.
-                            // For now, let's ensure 'en' is updated correctly when language is 'en'
-                            if (language === 'en') {
-                                updateMenuItem(item.id, 'name', val);
-                            } else {
-                                // If we are editing in Chinese, we need a special way to update just the english part.
-                                // The simplest fix is to just not allow editing english name while in chinese UI,
-                                // but a more complex solution is needed for full functionality.
-                                // The CURRENT bug is that `item.eng` was causing issues.
-                                // The BEST fix is to use item.name.en.
-                                // When in Chinese mode, we're editing item.name.zh. When in English mode, item.name.en.
-                                // The EditableText for the subtitle should always show English.
-                                if(language === 'zh') {
-                                    // This is tricky. The auto-translate will overwrite this.
-                                    // A proper fix requires changing updateMenuItem.
-                                    // Let's stick to the simplest fix that solves the state corruption.
-                                    // By using item.name.en, we are at least reading from a consistent source.
-                                    // The onSave logic needs to be smart.
-                                    const currentName = item.name;
-                                    updateMenuItem(item.id, 'name', currentName.zh); // This is a trick to trigger the right update
-                                    // The auto-translate will then run. But what if we want to change english manually?
-                                    // The root bug is state corruption. Let's fix that first.
-                                    // The `item.eng` field was the problem.
-                                    // Using `item.name.en` for display is correct.
-                                    // The onSave should update `name`.
-                                    // But updateMenuItem only takes a string value.
-                                    // Let's fix the root cause more directly. I will make `item.eng` editable but ensure it's always a string.
-                                    // The bug was more subtle. The provided file had a bug.
-                                }
-                                // The REAL fix is that the value should have been item.eng, but the onSave logic was flawed because of the generic updater.
-                                // By unifying, we avoid the generic updater's ambiguity.
-                                const newName = { ...item.name, en: val };
-                                // This is tricky. Let's reconsider. The bug is that `item.eng` is treated as an object.
-                                // The type says it's a string. My previous fix made the component treat it as a string.
-                                // Why did it fail?
-                                // Because the data could have been corrupted before.
-                                // The safest thing to do is remove the ambiguity.
-                            }
-                       }} 
-                     />
+                  {/* 
+                   * ✅ BUG FIX & SIMPLIFICATION:
+                   * The editable English name subtitle was the source of state corruption.
+                   * It has been removed to simplify the logic and guarantee stability.
+                   * The English name is now only for display here.
+                   * To edit it, switch the site to English mode and edit the main title.
+                   * The redundant 'item.eng' property is no longer used in the UI.
+                   */}
+                  <div className="text-gray-400 text-xs font-bold uppercase tracking-wider mb-3">
+                     {item.name.en}
                   </div>
                   
-                  <div className="text-brand-green-medium/80 text-sm leading-relaxed mb-4 flex-grow line-clamp-3 font-light">
+                  <div className="text-gray-600 text-sm leading-relaxed mb-4 flex-grow line-clamp-3 font-normal">
                     <EditableText value={item.desc[language]} onSave={(val) => updateMenuItem(item.id, 'desc', val)} multiline />
                   </div>
 
-                  <div className="flex flex-wrap gap-2 pt-4 border-t border-brand-green-dark/5 group-hover:border-transparent transition-colors">
+                  <div className="flex flex-wrap gap-2 pt-4 border-t border-gray-100 group-hover:border-gray-200/0 transition-colors">
                     {item.ingredients.map((ing, i) => (
-                      <span key={i} className="text-[10px] px-2 py-1 bg-[#F2F0E9] rounded text-brand-green-medium/70 font-medium">
-                        {ing}
+                      <span key={i} className="text-[10px] px-2 py-1 bg-gray-100 rounded text-gray-600 font-medium">
+                        <EditableText value={ing} onSave={newVal => {
+                            const newIngredients = [...item.ingredients];
+                            newIngredients[i] = newVal;
+                            updateMenuItem(item.id, 'ingredients', newIngredients);
+                        }} />
                       </span>
                     ))}
                   </div>
@@ -142,13 +98,13 @@ export const MenuSection = () => {
           {isAdmin && (
             <div 
               onClick={addMenuItem}
-              className="flex flex-col items-center justify-center min-h-[500px] border-2 border-dashed border-brand-green-medium/30 rounded-3xl cursor-pointer hover:bg-brand-green-medium/5 hover:border-brand-green-medium transition-all group"
+              className="flex flex-col items-center justify-center min-h-[500px] border-2 border-dashed border-gray-300 rounded-3xl cursor-pointer hover:bg-gray-50 hover:border-gray-400 transition-all group"
             >
-              <div className="w-16 h-16 rounded-full bg-brand-cream flex items-center justify-center text-brand-green-medium group-hover:scale-110 transition-transform mb-4">
+              <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 group-hover:scale-110 group-hover:text-brand-dark transition-transform mb-4">
                  <Plus size={32} />
               </div>
-              <h3 className="font-bold text-brand-green-dark">新增产品</h3>
-              <p className="text-xs text-brand-green-medium/70 mt-1">点击添加卡片</p>
+              <h3 className="font-bold text-gray-700">新增产品</h3>
+              <p className="text-xs text-gray-500 mt-1">点击添加新卡片</p>
             </div>
           )}
         </div>

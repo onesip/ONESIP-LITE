@@ -923,34 +923,47 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
   };
 
+  // ✅ BUG FIX: Refactored to prevent stale state issues and data corruption.
   const updateMenuItem = (id: number, field: keyof MenuItem, value: any) => {
-    setContent(prev => { 
+    // We wrap the entire logic, including async translation, inside a single setContent
+    // to ensure we are always working with the most up-to-date state.
+    setContent(prev => {
+        let updatedItem: MenuItem | undefined;
         const newMenu = prev.menu.map(item => {
             if (item.id !== id) return item;
             
-            // Handle localized text fields like name, tag, desc
+            // Logic for LocalizedText objects (like name, tag, desc)
             if (typeof item[field] === 'object' && item[field] !== null && 'zh' in (item[field] as any)) {
-                return { 
-                    ...item, 
-                    [field]: { ...(item[field] as any), [language]: value } 
+                updatedItem = {
+                    ...item,
+                    [field]: { ...(item[field] as any), [language]: value }
                 };
+            } else { // Logic for simple string fields (like image, price)
+                updatedItem = { ...item, [field]: value };
             }
-            
-            // Handle simple string fields like image, price, eng
-            return { ...item, [field]: value };
+            return updatedItem;
         });
+
+        // If the update was for a text field in Chinese, trigger auto-translation.
+        // This is done *after* the initial update is calculated but *before* the state is set.
+        if (updatedItem && typeof updatedItem[field] === 'object' && language === 'zh' && typeof value === 'string' && value.trim().length > 1) {
+            autoSyncEnglish(value, (translated) => {
+                // This triggers a *second* state update, which is safe in React.
+                // It ensures the translation is applied to the already updated state.
+                setContent(current => {
+                    const finalMenu = current.menu.map(m => {
+                        if (m.id !== id) return m;
+                        // Create a new field object with the translation.
+                        const finalField = { ...(m[field] as any), en: translated };
+                        return { ...m, [field]: finalField };
+                    });
+                    return { ...current, menu: finalMenu };
+                });
+            });
+        }
+
         return { ...prev, menu: newMenu };
     });
-
-    const item = content.menu.find(m => m.id === id);
-    if (item && typeof item[field] === 'object' && 'zh' in (item[field] as any)) {
-         autoSyncEnglish(value, (translated) => {
-             setContent(prev => ({
-                 ...prev,
-                 menu: prev.menu.map(m => m.id === id ? { ...m, [field]: { ...(m[field] as any), en: translated } } : m)
-             }));
-         });
-    }
   };
 
   const addMenuItem = () => {
@@ -1113,26 +1126,25 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
   // ROBUST SAVE FUNCTION
   const saveChanges = async () => {
     if (isLoading) return;
-    
     setIsSyncing(true);
     
-    // Create a deep copy of content to ensure we're saving the latest state
-    const contentToSave = JSON.parse(JSON.stringify(content));
-    
-    localStorage.setItem('onesip_content', JSON.stringify(contentToSave));
-    
-    let targetBin = cloudConfig.binId || APP_CONFIG.CLOUD_BIN_ID;
-    let targetKey = cloudConfig.apiKey || APP_CONFIG.CLOUD_API_KEY;
+    try {
+        const contentToSave = JSON.parse(JSON.stringify(content));
+        
+        localStorage.setItem('onesip_content', JSON.stringify(contentToSave));
+        
+        let targetBin = cloudConfig.binId || APP_CONFIG.CLOUD_BIN_ID;
+        let targetKey = cloudConfig.apiKey || APP_CONFIG.CLOUD_API_KEY;
 
-    if (targetBin && targetKey) {
-        try {
+        if (targetBin && targetKey) {
             await saveCloudContent(targetBin, targetKey, contentToSave);
-        } catch (e) {
-            console.error("Cloud Sync Failed:", e);
         }
+    } catch (e) {
+        console.error("CRITICAL: Failed to serialize and save content!", e);
+        // Here you might want to add a user-facing error message
+    } finally {
+        setTimeout(() => setIsSyncing(false), 500);
     }
-    
-    setTimeout(() => setIsSyncing(false), 500);
   };
 
   // --- AUTO-SAVE EFFECT ---
