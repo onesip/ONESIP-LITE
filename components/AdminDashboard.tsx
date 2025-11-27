@@ -1,3 +1,4 @@
+
 import React, { useState, useRef } from 'react';
 import { useContent } from '../contexts/ContentContext';
 import { useChat } from '../contexts/ChatContext';
@@ -33,6 +34,10 @@ import {
   Store,
   Clock,
   Calculator,
+  Save,
+  Loader2,
+  // FIX: Added missing Trash2 icon import
+  Trash2,
 } from 'lucide-react';
 import { LogoSymbol } from './BrandLogo';
 
@@ -527,20 +532,16 @@ const DashboardChat = () => {
 
 // --- Sub-Component: Media Library ---
 const DashboardMedia = () => {
-  const { content, addToLibrary, removeFromLibrary } = useContent();
+  const { content, addToLibrary, removeFromLibrary, saveChanges, isSyncing } = useContent();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
-
-  // Combine uploaded library + menu images + hero image
-  // Deduplicate and filter empty strings
-  const libraryImages = (content.library || []).map((src, i) => ({ 
-      id: src, // Use URL as unique ID for correct deletion behavior in React
+  
+  const allImages = (content.library || []).map((src) => ({ 
+      id: src,
       src, 
-      name: `Uploaded ${i+1}`, 
+      name: `Uploaded Image`, 
       isDeletable: true 
   }));
-  
-  const allImages = [...libraryImages];
 
   // CLIENT-SIDE IMAGE COMPRESSION (Max Width: 800px, Quality: 0.7)
   const compressImage = (file: File): Promise<string> => {
@@ -580,7 +581,6 @@ const DashboardMedia = () => {
           const file = e.target.files[0];
           setIsUploading(true);
           try {
-              // Warn for very large files even before compression
               if (file.size > 5 * 1024 * 1024) {
                   alert("图片太大，请选择 5MB 以下的图片");
                   return;
@@ -588,13 +588,11 @@ const DashboardMedia = () => {
 
               const base64 = await compressImage(file);
               addToLibrary(base64);
-              alert("上传成功！别忘了点击右下角的【保存】按钮同步到云端。");
           } catch (error) {
               console.error("Upload failed", error);
               alert("上传失败，请重试");
           } finally {
               setIsUploading(false);
-              // Reset input
               if (fileInputRef.current) fileInputRef.current.value = "";
           }
       }
@@ -602,18 +600,31 @@ const DashboardMedia = () => {
 
   const handleCopyUrl = (url: string) => {
       navigator.clipboard.writeText(url);
-      alert("✅ 图片链接已复制！\n现在去【CMS 装修】或【产品菜单】粘贴使用吧。");
+      alert("✅ 图片链接已复制！\n现在可以去【CMS 装修】模式下粘贴使用了。");
   };
 
   return (
     <div className="h-[calc(100vh-140px)] overflow-y-auto animate-fade-in p-2">
+        <div className="flex justify-between items-center mb-6">
+            <h3 className="text-white font-bold text-xl flex items-center gap-3">
+                <ImageIcon size={24} className="text-purple-400"/> 媒体图库
+            </h3>
+            <button 
+                onClick={saveChanges}
+                disabled={isSyncing}
+                className="bg-brand-green-medium hover:bg-brand-green-dark text-white px-4 py-2 rounded-lg text-xs font-bold transition-colors flex items-center gap-2 disabled:opacity-50"
+            >
+                {isSyncing ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+                {isSyncing ? '同步中...' : '保存媒体库'}
+            </button>
+        </div>
         <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4 mb-8 flex items-start gap-3">
              <AlertCircle className="text-yellow-500 mt-1 shrink-0" size={18}/>
              <div>
                  <h4 className="text-yellow-500 font-bold text-sm">关于图片存储</h4>
                  <p className="text-yellow-500/70 text-xs mt-1">
                      为了保证云端同步速度，上传的图片会自动压缩。
-                     <br/>上传后，图片会保存在数据文件中。请点击<strong>复制 URL</strong>，然后去其他页面粘贴使用。
+                     <br/>每次增删图片后，请点击右上角的 <strong>保存媒体库</strong> 按钮以同步到云端。
                  </p>
              </div>
         </div>
@@ -622,7 +633,7 @@ const DashboardMedia = () => {
             {/* Upload Button */}
             <div 
                 onClick={() => !isUploading && fileInputRef.current?.click()}
-                className={`aspect-square bg-[#1C1C1E] rounded-2xl border border-white/5 border-dashed flex flex-col items-center justify-center cursor-pointer hover:bg-white/5 transition group ${isUploading ? 'opacity-50 cursor-wait' : ''}`}
+                className={`aspect-square bg-[#1C1C1E] rounded-2xl border-2 border-white/5 border-dashed flex flex-col items-center justify-center cursor-pointer hover:bg-white/5 transition group ${isUploading ? 'opacity-50 cursor-wait' : ''}`}
             >
                 <input 
                     type="file" 
@@ -632,7 +643,7 @@ const DashboardMedia = () => {
                     onChange={handleFileUpload}
                 />
                 {isUploading ? (
-                    <div className="animate-spin text-brand-green-medium mb-2"><Rocket size={32}/></div>
+                    <div className="animate-spin text-brand-green-medium mb-2"><Loader2 size={32}/></div>
                 ) : (
                     <PlusCircle size={40} className="text-gray-600 group-hover:text-brand-green-medium mb-2"/>
                 )}
@@ -664,14 +675,9 @@ const DashboardMedia = () => {
                                 }}
                                 className="bg-red-500/20 text-red-400 px-3 py-1.5 rounded-full text-[10px] font-bold hover:bg-red-500/40 transition flex items-center gap-1"
                             >
-                                <LogOut size={10} /> 删除
+                                <Trash2 size={10} /> 删除
                             </button>
                         )}
-                    </div>
-                    
-                    {/* Label */}
-                    <div className="absolute bottom-0 w-full bg-black/80 backdrop-blur p-2">
-                        <div className="text-[10px] text-gray-300 truncate text-center">{img.name}</div>
                     </div>
                 </div>
             ))}

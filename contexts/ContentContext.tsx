@@ -923,45 +923,63 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
   };
 
-  // ✅ BUG FIX: Refactored to prevent stale state issues and data corruption.
+  // ✅ BUG FIX: Complete rewrite for stability. Prevents state corruption.
   const updateMenuItem = (id: number, field: keyof MenuItem, value: any) => {
-    // We wrap the entire logic, including async translation, inside a single setContent
-    // to ensure we are always working with the most up-to-date state.
     setContent(prev => {
-        let updatedItem: MenuItem | undefined;
-        const newMenu = prev.menu.map(item => {
-            if (item.id !== id) return item;
-            
-            // Logic for LocalizedText objects (like name, tag, desc)
-            if (typeof item[field] === 'object' && item[field] !== null && 'zh' in (item[field] as any)) {
-                updatedItem = {
-                    ...item,
-                    [field]: { ...(item[field] as any), [language]: value }
-                };
-            } else { // Logic for simple string fields (like image, price)
-                updatedItem = { ...item, [field]: value };
-            }
-            return updatedItem;
-        });
+        const itemIndex = prev.menu.findIndex(item => item.id === id);
+        if (itemIndex === -1) {
+            console.warn(`updateMenuItem failed: Item with id ${id} not found.`);
+            return prev; // Return previous state if item not found, preventing crashes.
+        }
 
-        // If the update was for a text field in Chinese, trigger auto-translation.
-        // This is done *after* the initial update is calculated but *before* the state is set.
-        if (updatedItem && typeof updatedItem[field] === 'object' && language === 'zh' && typeof value === 'string' && value.trim().length > 1) {
+        // Create a new menu array to avoid direct mutation.
+        const newMenu = [...prev.menu];
+        const oldItem = newMenu[itemIndex];
+        
+        // This will hold the single, safely updated item.
+        let updatedItem: MenuItem;
+
+        // Handle fields that are LocalizedText objects
+        if (field === 'name' || field === 'tag' || field === 'desc') {
+            const oldValue = oldItem[field] as LocalizedText;
+            updatedItem = {
+                ...oldItem,
+                [field]: { ...oldValue, [language]: value }
+            };
+        } 
+        // Handle all other fields (image, price, ingredients, eng) which are direct values
+        else {
+            updatedItem = { ...oldItem, [field]: value };
+        }
+
+        // Securely replace the old item with the updated one in the new array.
+        newMenu[itemIndex] = updatedItem;
+
+        // --- Trigger Auto-translation Safely ---
+        const isTranslatable = (field === 'name' || field === 'tag' || field === 'desc');
+        if (isTranslatable && language === 'zh' && typeof value === 'string' && value.trim().length > 1) {
+            // The async translation is performed, but the state update it triggers will
+            // be based on the *current* state at that time, preventing race conditions.
             autoSyncEnglish(value, (translated) => {
-                // This triggers a *second* state update, which is safe in React.
-                // It ensures the translation is applied to the already updated state.
                 setContent(current => {
-                    const finalMenu = current.menu.map(m => {
-                        if (m.id !== id) return m;
-                        // Create a new field object with the translation.
-                        const finalField = { ...(m[field] as any), en: translated };
-                        return { ...m, [field]: finalField };
-                    });
+                    const currentItemIndex = current.menu.findIndex(m => m.id === id);
+                    if (currentItemIndex === -1) return current; // Safety check
+
+                    const finalMenu = [...current.menu];
+                    const itemToTranslate = finalMenu[currentItemIndex];
+                    const fieldToTranslate = itemToTranslate[field] as LocalizedText;
+
+                    finalMenu[currentItemIndex] = {
+                        ...itemToTranslate,
+                        [field]: { ...fieldToTranslate, en: translated }
+                    };
+                    
                     return { ...current, menu: finalMenu };
                 });
             });
         }
-
+        
+        // Return the new state with the synchronously updated item.
         return { ...prev, menu: newMenu };
     });
   };

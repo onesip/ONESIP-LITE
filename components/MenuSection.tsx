@@ -2,7 +2,7 @@
 import React from 'react';
 import { useContent } from '../contexts/ContentContext';
 import { EditableText, EditableImage } from './ui/Editable';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, X } from 'lucide-react';
 
 export const MenuSection = () => {
   const { content, updateMenuItem, addMenuItem, deleteMenuItem, isAdmin, updateSection, language } = useContent();
@@ -63,14 +63,6 @@ export const MenuSection = () => {
                     </span>
                   </div>
                   
-                  {/* 
-                   * ✅ BUG FIX & SIMPLIFICATION:
-                   * The editable English name subtitle was the source of state corruption.
-                   * It has been removed to simplify the logic and guarantee stability.
-                   * The English name is now only for display here.
-                   * To edit it, switch the site to English mode and edit the main title.
-                   * The redundant 'item.eng' property is no longer used in the UI.
-                   */}
                   <div className="text-gray-400 text-xs font-bold uppercase tracking-wider mb-3">
                      {item.name.en}
                   </div>
@@ -79,16 +71,35 @@ export const MenuSection = () => {
                     <EditableText value={item.desc[language]} onSave={(val) => updateMenuItem(item.id, 'desc', val)} multiline />
                   </div>
 
-                  <div className="flex flex-wrap gap-2 pt-4 border-t border-gray-100 group-hover:border-gray-200/0 transition-colors">
+                  <div className="flex flex-wrap items-center gap-2 pt-4 border-t border-gray-100 group-hover:border-gray-200/0 transition-colors">
                     {item.ingredients.map((ing, i) => (
-                      <span key={i} className="text-[10px] px-2 py-1 bg-gray-100 rounded text-gray-600 font-medium">
+                      <span key={i} className="flex items-center gap-1 text-[10px] px-2 py-1 bg-gray-100 rounded text-gray-600 font-medium group/ing">
                         <EditableText value={ing} onSave={newVal => {
                             const newIngredients = [...item.ingredients];
                             newIngredients[i] = newVal;
                             updateMenuItem(item.id, 'ingredients', newIngredients);
                         }} />
+                        {isAdmin && <button 
+                            onClick={() => {
+                                const newIngredients = item.ingredients.filter((_, idx) => idx !== i);
+                                updateMenuItem(item.id, 'ingredients', newIngredients);
+                            }} 
+                            className="text-red-400 opacity-50 hover:opacity-100"
+                        >
+                            <X size={10} strokeWidth={3}/>
+                        </button>}
                       </span>
                     ))}
+                     {isAdmin && <button 
+                        onClick={() => {
+                            const newIngredients = [...item.ingredients, '新成分'];
+                            updateMenuItem(item.id, 'ingredients', newIngredients);
+                        }} 
+                        className="flex items-center justify-center w-5 h-5 bg-gray-200 text-gray-500 rounded hover:bg-brand-green-medium hover:text-white transition-colors"
+                        title="添加新成分"
+                    >
+                        <Plus size={10} strokeWidth={3}/>
+                    </button>}
                   </div>
               </div>
             </div>
