@@ -39,6 +39,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import { LogoSymbol } from './BrandLogo';
+import { APP_CONFIG } from '../config';
 
 // --- Sub-Component: Dashboard Home (Launcher) ---
 const DashboardHome = ({ onNavigate }: { onNavigate: (tab: any) => void }) => {
@@ -242,23 +243,21 @@ const DashboardLeads = () => {
 // --- Sub-Component: Settings (Cloud) ---
 const DashboardSettings = () => {
     const { cloudConfig, updateCloudConfig, content } = useContent();
-    const [localBinId, setLocalBinId] = useState(cloudConfig.binId);
-    // FIX: Changed from singular libraryBinId to plural libraryBinIds (array)
     const [localLibraryBinIds, setLocalLibraryBinIds] = useState(cloudConfig.libraryBinIds.length > 0 ? cloudConfig.libraryBinIds : Array(10).fill(''));
-    const [localApiKey, setLocalApiKey] = useState(cloudConfig.apiKey);
     const [isEnabled, setIsEnabled] = useState(cloudConfig.enabled);
     const [isTesting, setIsTesting] = useState(false);
     const [isCreating, setIsCreating] = useState(false);
 
+    const localApiKey = cloudConfig.apiKey || APP_CONFIG.CLOUD_API_KEY;
+    const localBinId = cloudConfig.binId || APP_CONFIG.CLOUD_BIN_ID;
+
     const handleTestConnection = async () => {
-        // FIX: Updated validation for multiple bin IDs
         if (!localBinId || localLibraryBinIds.some(id => !id) || !localApiKey) {
-            alert("请先填写所有字段: API Key, Main Bin ID, 和 10个 Library Bin ID");
+            alert("云端配置不完整。请确保 config.ts 已配置，或尝试重新'一键生成'。");
             return;
         }
         setIsTesting(true);
         try {
-            // FIX: Pass array of bin IDs to fetch function
             await fetchCloudContent(localBinId, localApiKey, localLibraryBinIds);
             alert("✅ 连接成功！云端配置有效，可以使用。");
         } catch (e) {
@@ -270,35 +269,30 @@ const DashboardSettings = () => {
 
     const handleAutoCreate = async () => {
         if (!localApiKey) {
-            alert("请先在下方填入 X-Master-Key (API Key)");
+            alert("错误：在 config.ts 中未找到 API Key。");
             return;
         }
-        // FIX: Added confirmation for creating multiple bins
-        if (!confirm("此操作将创建11个新的云端存储 Bin (1个主内容 + 10个媒体库)。确定要继续吗？")) {
+        if (!confirm("此操作将创建10个新的媒体库 Bin 并将其关联到您的主账户。确定要继续吗？")) {
             return;
         }
         setIsCreating(true);
         try {
-            // FIX: Pass mainContent (without library) to createCloudBins
             const { library, ...mainContent } = content;
-            // FIX: Destructure plural libraryBinIds from response
-            const { binId, libraryBinIds } = await createCloudBins(localApiKey, mainContent);
+            const { libraryBinIds } = await createCloudBins(localApiKey, mainContent);
             
-            setLocalBinId(binId);
-            setLocalLibraryBinIds(libraryBinIds); // FIX: Update state with array
+            setLocalLibraryBinIds(libraryBinIds);
             setIsEnabled(true);
             
             updateCloudConfig({
                 enabled: true,
-                binId: binId,
-                libraryBinIds: libraryBinIds, // FIX: Update config with array
+                binId: localBinId, // This is hardcoded, so we just re-affirm it
+                libraryBinIds: libraryBinIds,
                 apiKey: localApiKey
             });
             
-            // FIX: Updated alert message
-            alert(`🎉 成功！\n\n已自动创建主仓库和10个媒体库仓库。\n配置已自动保存并开启。\n\n请刷新页面以使新配置生效。`);
+            alert(`🎉 成功！\n\n已自动创建10个媒体库仓库并保存配置。\n\n请刷新页面以使新配置生效。`);
         } catch (e) {
-            alert("❌ 自动创建失败。\n请检查您的 API Key 是否正确（不要有多余空格）。\n请确保复制的是 'Master Key' 而不是 'Access Key'。");
+            alert("❌ 自动创建失败。\n请检查您的 API Key 是否在 config.ts 中正确配置。");
             console.error(e);
         } finally {
             setIsCreating(false);
@@ -309,7 +303,7 @@ const DashboardSettings = () => {
         updateCloudConfig({
             enabled: isEnabled,
             binId: localBinId,
-            libraryBinIds: localLibraryBinIds, // FIX: Save array of bin IDs
+            libraryBinIds: localLibraryBinIds,
             apiKey: localApiKey
         });
         alert("设置已保存！请刷新页面以加载云端数据。");
@@ -325,50 +319,22 @@ const DashboardSettings = () => {
                      <div className="flex-1">
                          <h3 className="text-2xl font-bold text-white mb-2">云端数据同步 (JSONBin)</h3>
                          <p className="text-gray-400 leading-relaxed mb-6">
-                             为了解决免费版100kb的容量限制，系统采用主数据 + 10个媒体库的分离存储方案。所有字段都需要配置才能正常同步。
+                             为了解决免费版100kb的容量限制，系统采用主数据 + 10个媒体库的分离存储方案。您的主配置已在 `config.ts` 中写死，这里只需生成并管理媒体库即可。
                          </p>
                          
                          <div className="bg-[#111211] p-6 rounded-xl border border-white/5 space-y-6">
                              
                              <div>
-                                 <label className="text-xs text-gray-500 uppercase tracking-wider font-bold mb-2 block flex justify-between items-center">
-                                     <span>1. 填入 X-Master-Key (API 密钥)</span>
-                                     <a 
-                                        href="https://jsonbin.io/app/api-keys" 
-                                        target="_blank" 
-                                        rel="noreferrer" 
-                                        className="text-indigo-400 hover:text-white underline text-xs flex items-center gap-1 bg-indigo-500/10 px-2 py-1 rounded-full transition-colors"
-                                     >
-                                         <ExternalLink size={10}/> 点击这里去复制 Key
-                                     </a>
-                                 </label>
-                                 <input 
-                                    value={localApiKey}
-                                    onChange={(e) => setLocalApiKey(e.target.value)}
-                                    placeholder="已从 config.ts 自动加载..."
-                                    type="password"
-                                    className="w-full bg-[#1C1C1E] border border-white/10 rounded-lg p-3 text-white focus:border-brand-green-medium outline-none transition-colors font-mono text-sm"
-                                    readOnly={!!APP_CONFIG.CLOUD_API_KEY}
-                                 />
-                                 <p className="text-[10px] text-gray-600 mt-1">
-                                     {APP_CONFIG.CLOUD_API_KEY ? "API Key 已在 config.ts 中硬编码，无需手动输入。" : "请确保复制的是黄色的 'Master Key'。"}
-                                 </p>
+                                 <label className="text-xs text-gray-500 uppercase tracking-wider font-bold mb-2 block">主账户配置 (已写死)</label>
+                                 <div className="space-y-2">
+                                     <input value={`API Key: ${localApiKey.substring(0, 15)}...`} readOnly className="w-full bg-[#1C1C1E] border border-white/10 rounded-lg p-2 text-gray-500 font-mono text-xs cursor-not-allowed"/>
+                                     <input value={`主Bin ID: ${localBinId}`} readOnly className="w-full bg-[#1C1C1E] border border-white/10 rounded-lg p-2 text-gray-500 font-mono text-xs cursor-not-allowed"/>
+                                 </div>
                              </div>
 
                              <div>
-                                 <label className="text-xs text-gray-500 uppercase tracking-wider font-bold mb-2 block">2. 生成/填入 Bin IDs</label>
-                                 <div className="space-y-2">
-                                     <input 
-                                        value={localBinId}
-                                        onChange={(e) => setLocalBinId(e.target.value)}
-                                        placeholder="主内容 Bin ID..."
-                                        className="w-full bg-[#1C1C1E] border border-white/10 rounded-lg p-2 text-white focus:border-brand-green-medium outline-none transition-colors font-mono text-sm"
-                                        readOnly={!!APP_CONFIG.CLOUD_BIN_ID}
-                                     />
-                                     {APP_CONFIG.CLOUD_BIN_ID && <p className="text-[10px] text-gray-600 -mt-1 pl-1">主内容 Bin ID 已在 config.ts 中硬编码。</p>}
-                                     
-                                     <div className="pt-2 text-xs text-gray-500">媒体库 Bin IDs (10个):</div>
-                                     <div className="grid grid-cols-2 gap-2">
+                                 <label className="text-xs text-gray-500 uppercase tracking-wider font-bold mb-2 block">媒体库 Bin IDs (10个)</label>
+                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                                      {localLibraryBinIds.map((id, i) => (
                                          <input 
                                             key={i}
@@ -382,16 +348,15 @@ const DashboardSettings = () => {
                                             className="w-full bg-[#1C1C1E] border border-white/10 rounded-lg p-2 text-white focus:border-brand-green-medium outline-none transition-colors font-mono text-xs"
                                          />
                                      ))}
-                                     </div>
                                  </div>
                                   <button
                                         onClick={handleAutoCreate}
                                         disabled={isCreating || !localApiKey}
                                         className="w-full mt-4 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:bg-gray-700 text-white px-5 py-2 rounded-lg text-xs font-bold whitespace-nowrap flex items-center justify-center gap-2 transition-all shadow-lg shadow-indigo-500/20"
-                                        title="只需填好 Key，点击此按钮帮您自动生成全部 11 个 Bin ID"
+                                        title="使用已配置的 API Key 自动生成 10 个媒体库 Bin"
                                      >
                                          {isCreating ? <Loader2 size={14} className="animate-spin"/> : <Sparkles size={14} />}
-                                         {isCreating ? "创建中..." : "一键自动生成全部 (1+10)"}
+                                         {isCreating ? "创建中..." : "一键生成媒体库 (10个)"}
                                   </button>
                              </div>
                              
@@ -564,14 +529,14 @@ const DashboardMedia = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
   
-  const allImages = (content.library || []).map((src) => ({ 
+  const library = content.library || [];
+  const allImages = library.map((src) => ({ 
       id: src,
       src, 
       name: `Uploaded Image`, 
       isDeletable: true 
   }));
 
-  // CLIENT-SIDE IMAGE COMPRESSION (Max Width: 800px, Quality: 0.7)
   const compressImage = (file: File): Promise<string> => {
       return new Promise((resolve, reject) => {
           const reader = new FileReader();
@@ -595,7 +560,6 @@ const DashboardMedia = () => {
                   const ctx = elem.getContext('2d');
                   ctx?.drawImage(img, 0, 0, width, height);
                   
-                  // Export as JPEG with 0.7 quality
                   resolve(elem.toDataURL('image/jpeg', 0.7));
               };
               img.onerror = (err) => reject(err);
@@ -607,13 +571,19 @@ const DashboardMedia = () => {
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
       if (e.target.files && e.target.files[0]) {
           const file = e.target.files[0];
+          
+          if (library.length >= 10) {
+              alert("媒体库已满，最多只能存放 10 张图片。请先删除一些旧图片。");
+              return;
+          }
+          
+          if (file.size > 100 * 1024) {
+              alert("图片太大！请选择小于 100kb 的图片。");
+              return;
+          }
+
           setIsUploading(true);
           try {
-              if (file.size > 5 * 1024 * 1024) {
-                  alert("图片太大，请选择 5MB 以下的图片");
-                  return;
-              }
-
               const base64 = await compressImage(file);
               addToLibrary(base64);
           } catch (error) {
@@ -636,6 +606,7 @@ const DashboardMedia = () => {
         <div className="flex justify-between items-center mb-6">
             <h3 className="text-white font-bold text-xl flex items-center gap-3">
                 <ImageIcon size={24} className="text-purple-400"/> 媒体图库
+                <span className="text-sm bg-white/10 px-3 py-1 rounded-full text-gray-400">{library.length} / 10</span>
             </h3>
             <button 
                 onClick={saveChanges}
@@ -651,8 +622,7 @@ const DashboardMedia = () => {
              <div>
                  <h4 className="text-yellow-500 font-bold text-sm">关于图片存储</h4>
                  <p className="text-yellow-500/70 text-xs mt-1">
-                     为了保证云端同步速度，上传的图片会自动压缩。
-                     <br/>每次增删图片后，请点击右上角的 <strong>保存媒体库</strong> 按钮以同步到云端。
+                     媒体库最多可存放 <strong>10</strong> 张图片，每张图片独立存储。上传前请确保图片大小不超过 <strong>100kb</strong>。
                  </p>
              </div>
         </div>
@@ -661,7 +631,7 @@ const DashboardMedia = () => {
             {/* Upload Button */}
             <div 
                 onClick={() => !isUploading && fileInputRef.current?.click()}
-                className={`aspect-square bg-[#1C1C1E] rounded-2xl border-2 border-white/5 border-dashed flex flex-col items-center justify-center cursor-pointer hover:bg-white/5 transition group ${isUploading ? 'opacity-50 cursor-wait' : ''}`}
+                className={`aspect-square bg-[#1C1C1E] rounded-2xl border-2 border-white/5 border-dashed flex flex-col items-center justify-center cursor-pointer hover:bg-white/5 transition group ${isUploading || library.length >= 10 ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
                 <input 
                     type="file" 
@@ -669,13 +639,16 @@ const DashboardMedia = () => {
                     className="hidden" 
                     accept="image/*"
                     onChange={handleFileUpload}
+                    disabled={isUploading || library.length >= 10}
                 />
                 {isUploading ? (
                     <div className="animate-spin text-brand-green-medium mb-2"><Loader2 size={32}/></div>
                 ) : (
-                    <PlusCircle size={40} className="text-gray-600 group-hover:text-brand-green-medium mb-2"/>
+                    <PlusCircle size={40} className={`text-gray-600 ${library.length < 10 && 'group-hover:text-brand-green-medium'} mb-2`}/>
                 )}
-                <span className="text-sm text-gray-500 font-medium">{isUploading ? "处理中..." : "上传新图片"}</span>
+                <span className="text-sm text-gray-500 font-medium">
+                    {isUploading ? "处理中..." : (library.length >= 10 ? "媒体库已满" : "上传新图片")}
+                </span>
             </div>
 
             {/* Image Grid */}

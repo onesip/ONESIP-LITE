@@ -1,4 +1,3 @@
-
 import { SiteContent } from '../types';
 import { APP_CONFIG } from '../config';
 
@@ -47,8 +46,9 @@ export const fetchCloudContent = async (binIdArg?: string, apiKeyArg?: string, l
         for (const [i, res] of libraryResponses.entries()) {
             if (res.ok) {
                 const libJson = await res.json();
-                if (libJson.record && Array.isArray(libJson.record.library)) {
-                    allLibraryImages.push(...libJson.record.library);
+                // Each bin should have { library: ["url"] } or { library: [] }
+                if (libJson.record && Array.isArray(libJson.record.library) && libJson.record.library[0]) {
+                    allLibraryImages.push(libJson.record.library[0]);
                 }
             } else {
                 console.warn(`Media Library bin #${i + 1} fetch error: ${res.status}.`);
@@ -81,12 +81,10 @@ export const saveCloudContent = async (binIdArg: string, libraryBinIdsArg: strin
     
     const { library, ...mainContent } = content;
     const libraryImages = library || [];
-
-    // Partition library images into chunks for each bin
-    const chunkSize = Math.ceil(libraryImages.length / NUM_LIBRARY_BINS);
-    const libraryChunks = Array.from({ length: NUM_LIBRARY_BINS }, (_, i) =>
-        libraryImages.slice(i * chunkSize, i * chunkSize + chunkSize)
-    );
+    
+    if (libraryImages.length > NUM_LIBRARY_BINS) {
+        throw new Error(`Cannot save: Library contains ${libraryImages.length} images, but the maximum is ${NUM_LIBRARY_BINS}.`);
+    }
 
     try {
         const mainSavePromise = fetch(`${BASE_URL}/${binId}`, {
@@ -95,13 +93,18 @@ export const saveCloudContent = async (binIdArg: string, libraryBinIdsArg: strin
             body: JSON.stringify(mainContent)
         });
 
-        const librarySavePromises = libraryBinIds.map((libBinId, i) =>
-            fetch(`${BASE_URL}/${libBinId}`, {
+        // One image per bin
+        const librarySavePromises = libraryBinIds.map((libBinId, i) => {
+            const imageForThisBin = libraryImages[i];
+            const payload = {
+                library: imageForThisBin ? [imageForThisBin] : [] // Store single image in an array or an empty array
+            };
+            return fetch(`${BASE_URL}/${libBinId}`, {
                 method: 'PUT',
                 headers: { 'X-Master-Key': apiKey, 'Content-Type': 'application/json' },
-                body: JSON.stringify({ library: libraryChunks[i] || [] }) // Ensure empty array for empty chunks
-            })
-        );
+                body: JSON.stringify(payload)
+            });
+        });
         
         const [mainResult, ...libraryResults] = await Promise.all([mainSavePromise, ...librarySavePromises]);
         
@@ -109,11 +112,12 @@ export const saveCloudContent = async (binIdArg: string, libraryBinIdsArg: strin
         if (!mainResult.ok) {
             errors.push(`Main Content Save Failed: ${await parseError(mainResult)}`);
         }
-        libraryResults.forEach(async (res, i) => {
+        for (const [i, res] of libraryResults.entries()) {
             if (!res.ok) {
+                // This is an await in a loop but it's for error handling, so it's acceptable.
                 errors.push(`Media Library Bin #${i+1} Save Failed: ${await parseError(res)}`);
             }
-        });
+        }
         
         if (errors.length > 0) {
             throw new Error(errors.join('\n'));
@@ -131,11 +135,11 @@ export const createCloudBins = async (apiKeyArg: string, mainContent: Omit<SiteC
     if (!apiKey) throw new Error("Missing API Key");
 
     try {
-        const mainBinPromise = fetch(BASE_URL, {
-            method: 'POST',
-            headers: { 'X-Master-Key': apiKey, 'Content-Type': 'application/json', 'X-Bin-Name': 'ONESIP_MAIN_CONTENT', 'X-Bin-Private': 'true' },
-            body: JSON.stringify(mainContent)
-        });
+        // Use the hardcoded main bin if it exists, otherwise create a new one.
+        const mainBinId = APP_CONFIG.CLOUD_BIN_ID;
+        if (!mainBinId) {
+            throw new Error("Critical: CLOUD_BIN_ID is not defined in config.ts. Cannot create library bins without it.");
+        }
 
         const libraryBinPromises = Array.from({ length: NUM_LIBRARY_BINS }, (_, i) =>
             fetch(BASE_URL, {
@@ -145,19 +149,17 @@ export const createCloudBins = async (apiKeyArg: string, mainContent: Omit<SiteC
             })
         );
         
-        const [mainResult, ...libraryResults] = await Promise.all([mainBinPromise, ...libraryBinPromises]);
+        const libraryResults = await Promise.all(libraryBinPromises);
 
-        if (!mainResult.ok || libraryResults.some(res => !res.ok)) {
-            const mainError = !mainResult.ok ? await mainResult.text() : "OK";
+        if (libraryResults.some(res => !res.ok)) {
             const libraryErrors = await Promise.all(libraryResults.map(async (res, i) => !res.ok ? `Lib #${i+1}: ${await res.text()}`: ""));
-            throw new Error(`Bin creation failed: \nMain: ${mainError}\nLibraries: ${libraryErrors.filter(Boolean).join(', ')}`);
+            throw new Error(`Library bin creation failed: \n${libraryErrors.filter(Boolean).join(', ')}`);
         }
 
-        const mainJson = await mainResult.json();
         const libraryJsons = await Promise.all(libraryResults.map(res => res.json()));
         
         return {
-            binId: mainJson.metadata.id,
+            binId: mainBinId,
             libraryBinIds: libraryJsons.map(json => json.metadata.id)
         };
 
