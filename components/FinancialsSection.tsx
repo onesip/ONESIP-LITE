@@ -16,54 +16,9 @@ interface DetailedModelData {
   profit: number;
 }
 
-// --- Configuration Parameters ---
-// Adjusted structure to easily match external spreadsheets
-const MODEL_PARAMS = {
-  A: { // Model A: DIY (Traditional Self-made)
-    price: 5.0,
-    cogsRate: 0.35,      // Material Cost % (Higher due to waste)
-    laborFixed: 2500,    // Full time staff needed
-    rent: 0,             // Existing space
-    equipFixed: 100,     // Minimal maintenance
-    misc: 200,
-    capCups: 45          // Max capacity limit for manual process
-  },
-  B: { // Model B: Rental Machine
-    price: 4.5,          // Lower perceived value
-    cogsRate: 0.30,      // Material Cost %
-    laborFixed: 1200,    // Part time
-    rent: 0,
-    equipFixed: 650,     // Fixed Rental Fee
-    misc: 200,
-    capCups: 60          // Machine speed limit
-  },
-  C: { // Model C: Franchise Store
-    price: 6.0,          // Premium pricing
-    cogsRate: 0.25,      // Material Cost % (Bulk efficiency)
-    laborFixed: 5000,    // High labor (2 Full + 1 Part)
-    rent: 2500,          // Dedicated space rent
-    equipFixed: 800,     // Equipment depreciation
-    misc: 1000           // Marketing & Utilities
-  },
-  D: { // Model D: ONESIP LITE
-    price: 5.0,
-    cogsRate: 0.28,      // Competitive supply chain
-    rent: 0,             // Existing space
-    systemFee: 899,      // Monthly SaaS/Machine Fee
-    brandFeeRate: 0.07,  // Revenue Share
-    misc: 100,
-    // Dynamic Labor: Depends on volume (Elastic)
-    laborLevels: [
-      { maxCups: 30, cost: 0 },    // Idle staff handles it
-      { maxCups: 80, cost: 900 },  // Slight extra help
-      { maxCups: Infinity, cost: 1800 } // Busy
-    ]
-  }
-};
-
 export const FinancialsSection = () => {
   const { content, updateSection, updateFinancialModel, updateFinancialModelDetail, language } = useContent();
-  const { financials } = content;
+  const { financials, calculatorParams } = content;
   const { models } = financials;
 
   const [dailyCups, setDailyCups] = useState(60);
@@ -82,54 +37,37 @@ export const FinancialsSection = () => {
       let costRent = 0;
       let costEquip = 0;
       let costMisc = 0;
+      
+      const params = calculatorParams[modelId as keyof typeof calculatorParams];
+      if (!params) return { revenue, costMaterials, costLabor, costRent, costEquip, costMisc, totalCost: 0, profit: 0 };
 
-      if (modelId === 'A') {
-          const params = MODEL_PARAMS.A;
-          // Apply capacity cap
-          const effectiveCups = Math.min(cups, params.capCups);
-          
+
+      if (modelId === 'A' || modelId === 'B') {
+          const effectiveCups = Math.min(cups, params.capCups || cups);
           revenue = effectiveCups * daysPerMonth * params.price;
           costMaterials = revenue * params.cogsRate;
-          costLabor = params.laborFixed;
+          costLabor = params.laborFixed || 0;
           costRent = params.rent;
-          costEquip = params.equipFixed;
-          costMisc = params.misc;
-      }
-      else if (modelId === 'B') {
-          const params = MODEL_PARAMS.B;
-          const effectiveCups = Math.min(cups, params.capCups);
-
-          revenue = effectiveCups * daysPerMonth * params.price;
-          costMaterials = revenue * params.cogsRate;
-          costLabor = params.laborFixed;
-          costRent = params.rent;
-          costEquip = params.equipFixed;
+          costEquip = params.equipFixed || 0;
           costMisc = params.misc;
       }
       else if (modelId === 'C') {
-          const params = MODEL_PARAMS.C;
           revenue = cups * daysPerMonth * params.price;
-
           costMaterials = revenue * params.cogsRate;
-          costLabor = params.laborFixed;
+          costLabor = params.laborFixed || 0;
           costRent = params.rent;
-          costEquip = params.equipFixed;
+          costEquip = params.equipFixed || 0;
           costMisc = params.misc;
       }
       else if (modelId === 'D') {
-          const params = MODEL_PARAMS.D;
           revenue = cups * daysPerMonth * params.price;
-
           costMaterials = revenue * params.cogsRate;
           
-          // Calculate Dynamic Labor
-          const laborLevel = params.laborLevels.find(l => cups <= l.maxCups) || params.laborLevels[params.laborLevels.length - 1];
-          costLabor = laborLevel.cost;
+          const laborLevel = (params.laborLevels || []).find(l => cups <= l.maxCups) || params.laborLevels?.[params.laborLevels.length - 1];
+          costLabor = laborLevel?.cost || 0;
 
           costRent = params.rent;
-          
-          // Formula: System Fee + (Revenue * Brand %)
-          costEquip = params.systemFee + (revenue * params.brandFeeRate);
+          costEquip = (params.systemFee || 0) + (revenue * (params.brandFeeRate || 0));
           costMisc = params.misc;
       }
 
@@ -157,7 +95,7 @@ export const FinancialsSection = () => {
         };
     });
     setChartData(data);
-  }, [dailyCups, models, language]);
+  }, [dailyCups, models, language, calculatorParams]);
 
   const handleAiAnalysis = async () => {
     setIsAnalyzing(true);
@@ -166,7 +104,6 @@ export const FinancialsSection = () => {
     setIsAnalyzing(false);
   };
 
-  const onesipData = calculateDetails('D', dailyCups);
   const activeModelData = calculateDetails(activeModelId, dailyCups);
   const activeModelInfo = models.find(m => m.id === activeModelId);
 
@@ -235,7 +172,7 @@ export const FinancialsSection = () => {
                             <Tooltip 
                                 cursor={{fill: 'rgba(255,255,255,0.05)'}}
                                 contentStyle={{backgroundColor: '#000', border: '1px solid #333', borderRadius: '8px', color: '#fff'}}
-                                formatter={(value: number) => [`€${value.toLocaleString()}`, language === 'zh' ? '净利润' : 'Net Profit']}
+                                formatter={(value: number) => [`€${value.toLocaleString(undefined, { maximumFractionDigits: 0 })}`, language === 'zh' ? '净利润' : 'Net Profit']}
                             />
                             <Bar dataKey="profit" radius={[6, 6, 6, 6]}>
                                 {chartData.map((entry, index) => (
@@ -281,14 +218,14 @@ export const FinancialsSection = () => {
                         <div className={`text-2xl md:text-3xl font-black mb-6 tracking-tight font-mono
                             ${isLoss ? 'text-red-500' : (isActive ? 'text-brand-green-medium' : 'text-gray-300')}
                         `}>
-                            {isLoss ? '-' : '+'}€{Math.abs(data.profit).toLocaleString()}
+                            {isLoss ? '-' : '+'}€{Math.abs(data.profit).toLocaleString(undefined, { maximumFractionDigits: 0 })}
                         </div>
 
                         {/* Expanded Details */}
                         <div className="space-y-2 text-xs border-t border-white/5 pt-4 w-full">
                             <div className="flex justify-between text-gray-400">
                                 <span>{language === 'zh' ? '营业额' : 'Revenue'}</span>
-                                <span className="text-white font-mono">€{data.revenue.toLocaleString()}</span>
+                                <span className="text-white font-mono">€{data.revenue.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
                             </div>
                             <div className="flex justify-between text-red-400/70">
                                 <span>{language === 'zh' ? '总成本' : 'Costs'}</span>

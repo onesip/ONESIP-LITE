@@ -1,11 +1,56 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { SiteContent, MenuItem, HeroContent, SectionItem, FinancialModelItem, ProcessPhase, CloudConfig, ShowcaseItem, FAQItem, Lead, Language, LocalizedText } from '../types';
+
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import { SiteContent, MenuItem, HeroContent, SectionItem, FinancialModelItem, ProcessPhase, CloudConfig, ShowcaseItem, FAQItem, Lead, Language, LocalizedText, CalculatorParams } from '../types';
 import { fetchCloudContent, saveCloudContent } from '../services/storageService';
 import { translateText } from '../services/geminiService';
 import { APP_CONFIG } from '../config';
 
 // Helper to create localized text
 const t = (zh: string, en: string): LocalizedText => ({ zh, en });
+
+// Default Calculator Parameters
+const defaultCalculatorParams: CalculatorParams = {
+  A: { // Model A: DIY (Traditional Self-made)
+    price: 5.0,
+    cogsRate: 0.35,      // Material Cost % (Higher due to waste)
+    laborFixed: 2500,    // Full time staff needed
+    rent: 0,             // Existing space
+    equipFixed: 100,     // Minimal maintenance
+    misc: 200,
+    capCups: 45          // Max capacity limit for manual process
+  },
+  B: { // Model B: Rental Machine
+    price: 4.5,          // Lower perceived value
+    cogsRate: 0.30,      // Material Cost %
+    laborFixed: 1200,    // Part time
+    rent: 0,
+    equipFixed: 650,     // Fixed Rental Fee
+    misc: 200,
+    capCups: 60          // Machine speed limit
+  },
+  C: { // Model C: Franchise Store
+    price: 6.0,          // Premium pricing
+    cogsRate: 0.25,      // Material Cost % (Bulk efficiency)
+    laborFixed: 5000,    // High labor (2 Full + 1 Part)
+    rent: 2500,          // Dedicated space rent
+    equipFixed: 800,     // Equipment depreciation
+    misc: 1000           // Marketing & Utilities
+  },
+  D: { // Model D: ONESIP LITE
+    price: 5.0,
+    cogsRate: 0.28,      // Competitive supply chain
+    rent: 0,             // Existing space
+    systemFee: 899,      // Monthly SaaS/Machine Fee
+    brandFeeRate: 0.07,  // Revenue Share
+    misc: 100,
+    laborLevels: [
+      { maxCups: 30, cost: 0 },    // Idle staff handles it
+      { maxCups: 80, cost: 900 },  // Slight extra help
+      { maxCups: 150, cost: 1800 } // Busy
+    ]
+  }
+};
+
 
 // 默认数据 (Bilingual) - MOVED UP for Migration Reference
 const defaultContent: SiteContent = {
@@ -367,12 +412,26 @@ const defaultContent: SiteContent = {
     copyright: "© 2025 ONESIP B.V."
   },
   library: [],
-  leads: []
+  leads: [],
+  calculatorParams: defaultCalculatorParams,
 };
 
 // Data Migration Helper
 const migrateContent = (data: any): SiteContent => {
     const migrated = { ...defaultContent, ...data };
+
+    // NEW: Migrate calculator params, deep merging to prevent missing fields
+    if (data.calculatorParams) {
+        migrated.calculatorParams = {
+            A: { ...defaultCalculatorParams.A, ...data.calculatorParams.A },
+            B: { ...defaultCalculatorParams.B, ...data.calculatorParams.B },
+            C: { ...defaultCalculatorParams.C, ...data.calculatorParams.C },
+            D: { ...defaultCalculatorParams.D, ...data.calculatorParams.D, laborLevels: data.calculatorParams.D.laborLevels || defaultCalculatorParams.D.laborLevels },
+        };
+    } else {
+        migrated.calculatorParams = defaultCalculatorParams;
+    }
+
 
     const toLoc = (val: any, defZh: string, defEn: string): LocalizedText => {
         // Case 1: Legacy String
@@ -621,6 +680,8 @@ interface ContentContextType {
   updateFinancialModelDetail: (modelIndex: number, type: 'pros' | 'cons', detailIndex: number, value: string) => void;
   updateProcessPhase: (index: number, field: keyof ProcessPhase, value: any) => void;
   updateProcessPhaseDetail: (phaseIndex: number, type: 'benefits' | 'obligations', detailIndex: number, value: string) => void;
+  updateCalculatorParam: (modelId: 'A' | 'B' | 'C' | 'D', field: string, value: number) => void;
+  updateCalculatorLaborLevel: (levelIndex: number, field: 'maxCups' | 'cost', value: number) => void;
   addToLibrary: (url: string) => void;
   removeFromLibrary: (url: string) => void;
   submitLead: (lead: Omit<Lead, 'id' | 'timestamp' | 'status'>) => Promise<void>;
@@ -641,6 +702,7 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [isSyncing, setIsSyncing] = useState(false);
   const [dataSource, setDataSource] = useState<'cloud' | 'local' | 'default'>('default');
   const [language, setLanguage] = useState<Language>('zh');
+  const isInitialMount = useRef(true);
 
   // --- AUTO TRANSLATE HELPER ---
   const autoSyncEnglish = async (text: string, callback: (translated: string) => void) => {
@@ -961,6 +1023,39 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
           });
       });
   };
+
+  // --- NEW: Calculator Param Updaters ---
+  const updateCalculatorParam = (modelId: 'A' | 'B' | 'C' | 'D', field: string, value: number) => {
+    setContent(prev => ({
+      ...prev,
+      calculatorParams: {
+        ...prev.calculatorParams,
+        [modelId]: {
+          ...prev.calculatorParams[modelId],
+          [field]: value
+        }
+      }
+    }));
+  };
+  
+  const updateCalculatorLaborLevel = (levelIndex: number, field: 'maxCups' | 'cost', value: number) => {
+    setContent(prev => {
+      const newLaborLevels = [...(prev.calculatorParams.D.laborLevels || [])];
+      if (newLaborLevels[levelIndex]) {
+        newLaborLevels[levelIndex] = { ...newLaborLevels[levelIndex], [field]: value };
+      }
+      return {
+        ...prev,
+        calculatorParams: {
+          ...prev.calculatorParams,
+          D: {
+            ...prev.calculatorParams.D,
+            laborLevels: newLaborLevels
+          }
+        }
+      };
+    });
+  };
   
   const addToLibrary = (url: string) => {
     setContent(prev => ({ ...prev, library: [url, ...(prev.library || [])] }));
@@ -975,13 +1070,17 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
       }
   };
 
-  const saveChanges = async () => {
+  const saveChanges = useCallback(async () => {
+    if (isLoading) return; // Do not save while still loading initial data
+    
     setIsSyncing(true);
+    // Always save to local storage first as a reliable backup
     localStorage.setItem('onesip_content', JSON.stringify(content));
     
     let targetBin = cloudConfig.binId;
     let targetKey = cloudConfig.apiKey;
 
+    // Use hardcoded config if available
     if (APP_CONFIG.ENABLE_CLOUD_SYNC && APP_CONFIG.CLOUD_BIN_ID) {
         targetBin = APP_CONFIG.CLOUD_BIN_ID;
         targetKey = APP_CONFIG.CLOUD_API_KEY;
@@ -991,11 +1090,36 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
         try {
             await saveCloudContent(targetBin, targetKey, content);
         } catch (e) {
-            console.error("Sync failed", e);
+            console.error("Cloud Sync Failed:", e);
+            // Optional: Show an error toast to the user
         }
-    } 
-    setIsSyncing(false);
-  };
+    }
+    
+    // Use a timeout to make the "SYNCING" indicator visible for a minimum duration
+    setTimeout(() => setIsSyncing(false), 500);
+  }, [content, cloudConfig, isLoading]);
+
+  // --- AUTO-SAVE EFFECT ---
+  useEffect(() => {
+    // Skip the very first render cycle to avoid saving default/initial content
+    if (isInitialMount.current) {
+        isInitialMount.current = false;
+        return;
+    }
+    
+    // Debounce the save function to prevent excessive calls
+    const handler = setTimeout(() => {
+        if (isAdmin) { // Only auto-save when in admin mode
+            saveChanges();
+        }
+    }, 1500); // 1.5 second delay after last change
+
+    // Cleanup function to cancel the timeout if content changes again
+    return () => {
+        clearTimeout(handler);
+    };
+  }, [content, isAdmin, saveChanges]);
+
 
   const submitLead = async (leadData: Omit<Lead, 'id' | 'timestamp' | 'status'>) => {
      const newLead: Lead = {
@@ -1005,19 +1129,24 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
         status: 'new'
     };
     
-    const newContent = { ...content, leads: [newLead, ...(content.leads || [])] };
-    setContent(newContent);
-    localStorage.setItem('onesip_content', JSON.stringify(newContent));
+    // Use a function for setContent to ensure we have the latest state
+    setContent(prev => {
+        const newContent = { ...prev, leads: [newLead, ...(prev.leads || [])] };
+        
+        // This save is immediate because it's a user action, not an edit
+        localStorage.setItem('onesip_content', JSON.stringify(newContent));
+        
+        let targetBin = cloudConfig.binId || APP_CONFIG.CLOUD_BIN_ID;
+        let targetKey = cloudConfig.apiKey || APP_CONFIG.CLOUD_API_KEY;
 
-    if (cloudConfig.enabled || (APP_CONFIG.ENABLE_CLOUD_SYNC && APP_CONFIG.CLOUD_BIN_ID)) {
-         setIsSyncing(true);
-         let targetBin = cloudConfig.binId || APP_CONFIG.CLOUD_BIN_ID;
-         let targetKey = cloudConfig.apiKey || APP_CONFIG.CLOUD_API_KEY;
-         try {
-             await saveCloudContent(targetBin, targetKey, newContent);
-         } catch(e) { console.error("Cloud sync lead failed", e) }
-         setIsSyncing(false);
-    }
+        if (targetBin && targetKey) {
+            setIsSyncing(true);
+            saveCloudContent(targetBin, targetKey, newContent)
+                .catch(e => console.error("Cloud sync lead failed", e))
+                .finally(() => setIsSyncing(false));
+        }
+        return newContent;
+    });
   };
 
   const resetContent = () => {
@@ -1058,6 +1187,8 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
       updateFinancialModelDetail,
       updateProcessPhase,
       updateProcessPhaseDetail,
+      updateCalculatorParam,
+      updateCalculatorLaborLevel,
       addToLibrary,
       removeFromLibrary,
       submitLead,

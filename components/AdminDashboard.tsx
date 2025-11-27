@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from 'react';
 import { useContent } from '../contexts/ContentContext';
 import { useChat } from '../contexts/ChatContext';
@@ -32,7 +31,8 @@ import {
   ClipboardList,
   MapPin,
   Store,
-  Clock
+  Clock,
+  Calculator,
 } from 'lucide-react';
 import { LogoSymbol } from './BrandLogo';
 
@@ -539,12 +539,8 @@ const DashboardMedia = () => {
       name: `Uploaded ${i+1}`, 
       isDeletable: true 
   }));
-  const systemImages = [
-      { id: 'hero', src: content.hero.image, name: "Hero Product", isDeletable: false },
-      ...content.menu.map(m => ({ id: `menu-${m.id}`, src: m.image, name: `Product: ${m.name}`, isDeletable: false }))
-  ];
   
-  const allImages = [...libraryImages, ...systemImages];
+  const allImages = [...libraryImages];
 
   // CLIENT-SIDE IMAGE COMPRESSION (Max Width: 800px, Quality: 0.7)
   const compressImage = (file: File): Promise<string> => {
@@ -684,11 +680,90 @@ const DashboardMedia = () => {
   );
 };
 
+// --- Sub-Component: Calculator Config ---
+const DashboardCalculatorConfig = () => {
+    const { content, updateCalculatorParam, updateCalculatorLaborLevel } = useContent();
+    const { calculatorParams } = content;
+
+    const models = [
+        { id: 'A', name: '传统自制 (DIY)' },
+        { id: 'B', name: '租赁小机器' },
+        { id: 'C', name: '传统自营店' },
+        { id: 'D', name: 'ONESIP LITE' },
+    ];
+    
+    const ParamInput = ({ label, value, prefix, suffix, step, onChange }: any) => (
+        <div className="flex items-center justify-between py-2 border-b border-white/5">
+            <label className="text-sm text-gray-400">{label}</label>
+            <div className="flex items-center gap-2">
+                {prefix && <span className="text-gray-500 text-xs">{prefix}</span>}
+                <input
+                    type="number"
+                    value={value || 0}
+                    step={step || 1}
+                    onChange={e => onChange(parseFloat(e.target.value) || 0)}
+                    className="w-24 bg-[#111211] text-white text-right font-mono rounded-md px-2 py-1 border border-white/10 focus:outline-none focus:ring-1 focus:ring-brand-green-medium"
+                />
+                {suffix && <span className="text-gray-500 text-xs">{suffix}</span>}
+            </div>
+        </div>
+    );
+    
+    return (
+        <div className="max-w-6xl mx-auto space-y-8 animate-fade-in">
+             <div className="mb-8">
+                 <h3 className="text-2xl font-bold text-white flex items-center gap-3">
+                     <Calculator className="text-purple-400" />
+                     利润计算器参数配置
+                 </h3>
+                 <p className="text-sm text-gray-500 mt-1">修改这里的数值会实时影响前台计算器的结果。请谨慎操作。</p>
+             </div>
+             
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                 {models.map(model => (
+                     <div key={model.id} className="bg-[#1C1C1E] border border-white/5 rounded-2xl p-6 space-y-1">
+                         <h4 className="text-lg font-bold text-white mb-2">{model.name}</h4>
+                         <ParamInput label="单杯售价" value={calculatorParams[model.id as keyof typeof calculatorParams].price} prefix="€" step="0.1" onChange={(val: number) => updateCalculatorParam(model.id as any, 'price', val)} />
+                         <ParamInput label="原料成本" value={(calculatorParams[model.id as keyof typeof calculatorParams].cogsRate || 0) * 100} suffix="%" step="1" onChange={(val: number) => updateCalculatorParam(model.id as any, 'cogsRate', val / 100)} />
+                         <ParamInput label="杂项成本/月" value={calculatorParams[model.id as keyof typeof calculatorParams].misc} prefix="€" step="10" onChange={(val: number) => updateCalculatorParam(model.id as any, 'misc', val)} />
+                         <ParamInput label="房租成本/月" value={calculatorParams[model.id as keyof typeof calculatorParams].rent} prefix="€" step="100" onChange={(val: number) => updateCalculatorParam(model.id as any, 'rent', val)} />
+                         
+                         <div className="pt-2"></div>
+                         
+                         {model.id === 'D' ? (
+                             <>
+                                <ParamInput label="系统服务费/月" value={calculatorParams.D.systemFee} prefix="€" step="10" onChange={(val: number) => updateCalculatorParam('D', 'systemFee', val)} />
+                                <ParamInput label="品牌管理费率" value={(calculatorParams.D.brandFeeRate || 0) * 100} suffix="%" step="0.5" onChange={(val: number) => updateCalculatorParam('D', 'brandFeeRate', val / 100)} />
+                                <div className="space-y-2 pt-4">
+                                     <label className="text-sm text-gray-400 block mb-2">弹性人工成本</label>
+                                     {(calculatorParams.D.laborLevels || []).map((level, i) => (
+                                         <div key={i} className="flex items-center gap-2 text-xs text-gray-300">
+                                             日均销量低于 <input type="number" value={level.maxCups} onChange={e => updateCalculatorLaborLevel(i, 'maxCups', parseInt(e.target.value) || 0)} className="w-16 bg-[#111211] text-center text-white font-mono rounded-md px-1 py-0.5 border border-white/10" /> 杯,
+                                             人工成本为 € <input type="number" value={level.cost} onChange={e => updateCalculatorLaborLevel(i, 'cost', parseInt(e.target.value) || 0)} className="w-20 bg-[#111211] text-center text-white font-mono rounded-md px-1 py-0.5 border border-white/10" />
+                                         </div>
+                                     ))}
+                                </div>
+                             </>
+                         ) : (
+                             <>
+                                <ParamInput label="固定人工/月" value={calculatorParams[model.id as keyof typeof calculatorParams].laborFixed} prefix="€" step="100" onChange={(val: number) => updateCalculatorParam(model.id as any, 'laborFixed', val)} />
+                                <ParamInput label="固定设备/月" value={calculatorParams[model.id as keyof typeof calculatorParams].equipFixed} prefix="€" step="50" onChange={(val: number) => updateCalculatorParam(model.id as any, 'equipFixed', val)} />
+                                <ParamInput label="产能上限" value={calculatorParams[model.id as keyof typeof calculatorParams].capCups} suffix="杯/天" step="5" onChange={(val: number) => updateCalculatorParam(model.id as any, 'capCups', val)} />
+                             </>
+                         )}
+                     </div>
+                 ))}
+             </div>
+        </div>
+    )
+}
+
+
 // --- Main Layout ---
 
 export const AdminDashboard = () => {
   const { logout, closeDashboard } = useContent();
-  const [activeTab, setActiveTab] = useState<'home' | 'cms' | 'media' | 'chat' | 'settings' | 'leads'>('home');
+  const [activeTab, setActiveTab] = useState<'home' | 'cms' | 'media' | 'chat' | 'settings' | 'leads' | 'calculator'>('home');
 
   return (
     <div className="flex h-screen w-full bg-[#111211] text-gray-200 font-sans selection:bg-brand-green-medium selection:text-white overflow-hidden">
@@ -738,6 +813,12 @@ export const AdminDashboard = () => {
                 <ImageIcon size={18} /> 媒体图库
             </button>
             <button 
+                onClick={() => setActiveTab('calculator')}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'calculator' ? 'bg-brand-green-medium text-white shadow-lg shadow-brand-green-medium/20' : 'text-gray-400 hover:bg-white/5 hover:text-white'}`}
+            >
+                <Calculator size={18} /> 测算器配置
+            </button>
+            <button 
                 onClick={() => setActiveTab('settings')}
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'settings' ? 'bg-brand-green-medium text-white shadow-lg shadow-brand-green-medium/20' : 'text-gray-400 hover:bg-white/5 hover:text-white'}`}
             >
@@ -772,6 +853,7 @@ export const AdminDashboard = () => {
              {activeTab === 'leads' && "加盟申请 (Leads)"}
              {activeTab === 'chat' && "客服中心 (Live Chat)"}
              {activeTab === 'media' && "媒体图库 (Media Library)"}
+             {activeTab === 'calculator' && "利润测算器配置"}
              {activeTab === 'settings' && "系统设置 (System Settings)"}
           </h2>
           <div className="flex items-center gap-4">
@@ -794,6 +876,7 @@ export const AdminDashboard = () => {
             {activeTab === 'leads' && <DashboardLeads />}
             {activeTab === 'chat' && <DashboardChat />}
             {activeTab === 'media' && <DashboardMedia />}
+            {activeTab === 'calculator' && <DashboardCalculatorConfig />}
             {activeTab === 'settings' && <DashboardSettings />}
         </div>
       </div>

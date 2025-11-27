@@ -186,6 +186,33 @@ export interface FinancialsContent {
   models: FinancialModelItem[];
 }
 
+// NEW: Types for Calculator Configuration
+export interface LaborLevel {
+  maxCups: number;
+  cost: number;
+}
+
+export interface ModelParams {
+  price: number;
+  cogsRate: number;
+  laborFixed?: number;
+  laborLevels?: LaborLevel[];
+  rent: number;
+  equipFixed?: number;
+  systemFee?: number;
+  brandFeeRate?: number;
+  misc: number;
+  capCups?: number;
+}
+
+export interface CalculatorParams {
+  A: ModelParams;
+  B: ModelParams;
+  C: ModelParams;
+  D: ModelParams;
+}
+// END NEW
+
 export interface MenuSectionContent {
   isVisible: boolean;
   tagline: LocalizedText;
@@ -225,6 +252,7 @@ export interface SiteContent {
   footer: FooterContent;
   library: string[];
   leads: Lead[];
+  calculatorParams: CalculatorParams; // NEW
 }
 
 export type ChatSender = 'user' | 'ai' | 'admin';
