@@ -70,9 +70,9 @@ const defaultContent: SiteContent = {
     title: t("为什么选择\n店中店模式？", "Why Choose the\nShop-in-Shop Model?"),
     description: t("传统的奶茶店深受高昂房租和人工成本的拖累。我们将整套系统压缩成一个智能模块，将利润直接留给您。", "Traditional bubble tea shops suffer from high rent and labor costs. We compressed the entire system into a smart module, leaving the profits directly to you."),
     items: [
-      { title: t("品牌流量互导", "Brand Traffic Synergy"), desc: t("不仅卖饮品，更共享 ONESIP 品牌流量。直接导入 ONESIP TOP8 网红产品，丰富产品结构，显著提升客单价。", "Share ONESIP brand traffic. Import TOP8 best-selling products to enrich your structure and boost average ticket size.") },
-      { title: t("高度自动标准化", "Highly Automated & Standardized"), desc: t("告别不稳定的人工手摇。机器自动配比、清洗。新员工培训1小时即可完美上岗。", "Say goodbye to inconsistent manual shaking. Automated mixing and cleaning. New staff trained in 1 hour.") },
-      { title: t("空间极致利用", "Ultimate Space Efficiency"), desc: t("利用现有闲置吧台或角落。不增加一分钱房租。将坪效提升至极限。", "Utilize idle counters or corners. Zero additional rent. Maximize revenue per square meter.") }
+      { id: "model-1", title: t("品牌流量互导", "Brand Traffic Synergy"), desc: t("不仅卖饮品，更共享 ONESIP 品牌流量。直接导入 ONESIP TOP8 网红产品，丰富产品结构，显著提升客单价。", "Share ONESIP brand traffic. Import TOP8 best-selling products to enrich your structure and boost average ticket size.") },
+      { id: "model-2", title: t("高度自动标准化", "Highly Automated & Standardized"), desc: t("告别不稳定的人工手摇。机器自动配比、清洗。新员工培训1小时即可完美上岗。", "Say goodbye to inconsistent manual shaking. Automated mixing and cleaning. New staff trained in 1 hour.") },
+      { id: "model-3", title: t("空间极致利用", "Ultimate Space Efficiency"), desc: t("利用现有闲置吧台或角落。不增加一分钱房租。将坪效提升至极限。", "Utilize idle counters or corners. Zero additional rent. Maximize revenue per square meter.") }
     ]
   },
   process: {
@@ -156,6 +156,7 @@ const defaultContent: SiteContent = {
     description: t("从寿司店到书店，从超市到食堂。看看不同业态的合作伙伴是如何利用闲置空间创造第二增长曲线的。", "From sushi shops to bookstores. See how partners create a second growth curve using idle space."),
     items: [
         {
+            id: "show-1",
             title: t("Shabu Shabu 寿司店", "Shabu Shabu Sushi"),
             desc: t("利用收银台旁0.5米空间，无需额外员工，顾客等待外卖时自助点单。", "Using 0.5m space by cashier. No extra staff. Self-service for waiting customers."),
             tag: t("Rotterdam", "Rotterdam"),
@@ -164,6 +165,7 @@ const defaultContent: SiteContent = {
             statLabel: t("客单价提升", "Ticket Lift")
         },
         {
+            id: "show-2",
             title: t("InterBook 独立书店", "InterBook Store"),
             desc: t("在阅读区角落引入ONESIP，安静不打扰，为读者提供高品质饮品，延长留店时间。", "ONESIP in the reading corner. Quiet, high-quality drinks extending dwell time."),
             tag: t("Amsterdam", "Amsterdam"),
@@ -172,6 +174,7 @@ const defaultContent: SiteContent = {
             statLabel: t("月平均增收", "Monthly Revenue")
         },
         {
+            id: "show-3",
             title: t("Asian Market 超市", "Asian Market"),
             desc: t("出口处设立自助站，购物结束后的顺手一杯。全自助模式，无需收银员干预。", "Self-service station at exit. Grab-and-go after shopping. No cashier needed."),
             tag: t("Utrecht", "Utrecht"),
@@ -368,22 +371,27 @@ const defaultContent: SiteContent = {
     description: t("我们整理了合作伙伴最关心的运营、技术与法律问题。", "We've compiled the most common operational, technical, and legal questions."),
     items: [
         {
+            id: "faq-1",
             question: t("机器出现故障怎么办？谁来维修？", "What if the machine breaks?"),
             answer: t("ONESIP 提供全包式维保服务。软件问题通过远程 OTA 实时修复（约10分钟）；硬件故障我们承诺在 48 小时内上门维修或提供备用机。在质保期内，一切维修费用由我们承担。", "ONESIP provides all-inclusive maintenance. Software issues fixed via OTA (10 mins); Hardware fixed on-site within 48h. All costs covered during warranty.")
         },
         {
+            id: "faq-2",
             question: t("必须使用 ONESIP 提供的原料吗？", "Must we use ONESIP ingredients?"),
             answer: t("是的。为了确保口味的一致性、食品安全以及机器参数的精准匹配，合作商必须使用 I'TEA Supply 官方提供的原料（茶汤、果浆、珍珠等）。我们承诺给予合作商全荷兰最具竞争力的批发价格。", "Yes. To ensure consistency, safety, and machine calibration, you must use I'TEA Supply ingredients. We guarantee the most competitive wholesale prices in NL.")
         },
         {
+            id: "faq-3",
             question: t("店员学不会操作怎么办？", "What if staff can't learn it?"),
             answer: t("我们的机器设计理念是“傻瓜式操作”。点击屏幕 -> 扫码 -> 出杯。通常只需 30 分钟即可教会新员工。此外，我们提供开业前的一对一上门培训，以及全套视频 SOP 教程。", "It's designed to be foolproof. Click -> Scan -> Serve. 30 mins to learn. We also provide on-site training and video SOPs.")
         },
         {
+            id: "faq-4",
             question: t("对店铺的水电有什么特殊要求？", "Any utility requirements?"),
             answer: t("不需要工业用电，普通 220V 插座即可。需要具备基本的上下水（进水和排水）条件，建议距离机器摆放位置不超过 2 米。如果您不确定，我们可以安排技术人员进行视频勘测。", "No industrial power, just 220V. Needs basic water supply and drainage within 2m. We can arrange video survey if unsure.")
         },
         {
+            id: "faq-5",
             question: t("如果合作不愉快，可以随时退出吗？", "Can I exit anytime?"),
             answer: t("我们设有“冷静期”和“退出机制”。试运行期（前2个月）内，您可以随时无责退出。正式签约后，如果连续 6 个月未达到最低销量指标，您可以申请提前终止合同，仅需支付少量折旧费。", "Yes. You have a cooling-off period (first 2 months) to exit freely. After signing, if sales miss targets for 6 months, you can terminate with small depreciation fee.")
         }
@@ -395,12 +403,12 @@ const defaultContent: SiteContent = {
     buttonText: t("立即申请加盟咨询", "Apply for Consultation"),
     disclaimer: t("名额有限，我们将严格筛选合作伙伴。", "Limited spots, strict selection."),
     items: [
-      { title: t("现有门店", "Existing Store"), desc: t("拥有稳定客流 (餐厅/书店/零售)", "Stable traffic (Restaurant/Retail)") },
-      { title: t("黄金地段", "Prime Location"), desc: t("市中心、车站或高流量商圈", "City center, Station, High traffic") },
-      { title: t("年轻客群", "Young Audience"), desc: t("周边有大学或国际化人群", "Near universities or expats") },
-      { title: t("长期主义", "Long-termism"), desc: t("认可数字化模式，追求长期增长", "Value digital model & growth") },
-      { title: t("空间要求", "Space Req."), desc: t("需要提供5平左右用于ONESIP LITE独立运营", "Need ~5m² for operation") },
-      { title: t("水电基础", "Utilities"), desc: t("具备基本的进排水和电力条件", "Basic water & power") }
+      { id: "partner-1", title: t("现有门店", "Existing Store"), desc: t("拥有稳定客流 (餐厅/书店/零售)", "Stable traffic (Restaurant/Retail)") },
+      { id: "partner-2", title: t("黄金地段", "Prime Location"), desc: t("市中心、车站或高流量商圈", "City center, Station, High traffic") },
+      { id: "partner-3", title: t("年轻客群", "Young Audience"), desc: t("周边有大学或国际化人群", "Near universities or expats") },
+      { id: "partner-4", title: t("长期主义", "Long-termism"), desc: t("认可数字化模式，追求长期增长", "Value digital model & growth") },
+      { id: "partner-5", title: t("空间要求", "Space Req."), desc: t("需要提供5平左右用于ONESIP LITE独立运营", "Need ~5m² for operation") },
+      { id: "partner-6", title: t("水电基础", "Utilities"), desc: t("具备基本的进排水和电力条件", "Basic water & power") }
     ]
   },
   footer: {
@@ -419,6 +427,18 @@ const defaultContent: SiteContent = {
 // Data Migration Helper
 const migrateContent = (data: any): SiteContent => {
     const migrated = { ...defaultContent, ...data };
+
+    // NEW: Ensure all list items have a unique ID for stable editing
+    const ensureIds = (items: any[]) => {
+      if (!items) return [];
+      return items.map(item => ({ ...item, id: item.id || `gen_${Date.now()}_${Math.random()}` }));
+    };
+
+    if (migrated.model?.items) migrated.model.items = ensureIds(migrated.model.items);
+    if (migrated.showcase?.items) migrated.showcase.items = ensureIds(migrated.showcase.items);
+    if (migrated.faq?.items) migrated.faq.items = ensureIds(migrated.faq.items);
+    if (migrated.partner?.items) migrated.partner.items = ensureIds(migrated.partner.items);
+
 
     // NEW: Migrate calculator params, deep merging to prevent missing fields
     if (data.calculatorParams) {
@@ -686,6 +706,19 @@ interface ContentContextType {
   removeFromLibrary: (url: string) => void;
   submitLead: (lead: Omit<Lead, 'id' | 'timestamp' | 'status'>) => Promise<void>;
   
+  // NEW: Generic List Management
+  addSectionItem: (section: 'model' | 'partner' | 'showcase' | 'faq') => void;
+  deleteSectionItem: (section: 'model' | 'partner' | 'showcase' | 'faq', id: string) => void;
+  reorderSectionItems: (section: 'model' | 'partner' | 'showcase' | 'faq', startIndex: number, endIndex: number) => void;
+
+  // NEW: Nested List Management
+  addFinancialModelDetail: (modelIndex: number, type: 'pros' | 'cons') => void;
+  deleteFinancialModelDetail: (modelIndex: number, type: 'pros' | 'cons', detailIndex: number) => void;
+  reorderFinancialModelDetails: (modelIndex: number, type: 'pros' | 'cons', startIndex: number, endIndex: number) => void;
+  addProcessPhaseDetail: (phaseIndex: number, type: 'benefits' | 'obligations') => void;
+  deleteProcessPhaseDetail: (phaseIndex: number, type: 'benefits' | 'obligations', detailIndex: number) => void;
+  reorderProcessPhaseDetails: (phaseIndex: number, type: 'benefits' | 'obligations', startIndex: number, endIndex: number) => void;
+
   saveChanges: () => void;
   resetContent: () => void;
 }
@@ -1154,6 +1187,99 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
   }
 
+  // --- NEW: List Management Functions ---
+  const addSectionItem = (section: 'model' | 'partner' | 'showcase' | 'faq') => {
+    setContent(prev => {
+      const currentSection = prev[section] as any;
+      const newId = `item_${Date.now()}`;
+      let newItem: any;
+
+      if (section === 'showcase') {
+        newItem = { id: newId, title: t('新案例', 'New Case'), desc: t('案例描述...', 'Case description...'), tag: t('地点', 'Location'), image: 'https://images.unsplash.com/photo-1541658016709-82535e94bc69', statValue: t('€1,000', '€1,000'), statLabel: t('月增收', 'Monthly Revenue') };
+      } else if (section === 'faq') {
+        newItem = { id: newId, question: t('新问题？', 'New Question?'), answer: t('这里是答案...', 'Here is the answer...') };
+      } else {
+        newItem = { id: newId, title: t('新特性', 'New Feature'), desc: t('特性描述...', 'Feature description...') };
+      }
+
+      return { ...prev, [section]: { ...currentSection, items: [...currentSection.items, newItem]}};
+    });
+  };
+
+  const deleteSectionItem = (section: 'model' | 'partner' | 'showcase' | 'faq', id: string) => {
+    if (!confirm('确定要删除这个项目吗？')) return;
+    setContent(prev => {
+      const currentSection = prev[section] as any;
+      const newItems = currentSection.items.filter((item: any) => item.id !== id);
+      return { ...prev, [section]: { ...currentSection, items: newItems }};
+    });
+  };
+
+  const reorderSectionItems = (section: 'model' | 'partner' | 'showcase' | 'faq', startIndex: number, endIndex: number) => {
+    setContent(prev => {
+      const currentSection = prev[section] as any;
+      const newList = Array.from(currentSection.items);
+      const [removed] = newList.splice(startIndex, 1);
+      newList.splice(endIndex, 0, removed);
+      return { ...prev, [section]: { ...currentSection, items: newList }};
+    });
+  };
+  
+  const addFinancialModelDetail = (modelIndex: number, type: 'pros' | 'cons') => {
+    setContent(prev => {
+      const newModels = [...prev.financials.models];
+      const newDetail = t('新条目', 'New Item');
+      newModels[modelIndex][type].push(newDetail);
+      return { ...prev, financials: { ...prev.financials, models: newModels }};
+    });
+  };
+
+  const deleteFinancialModelDetail = (modelIndex: number, type: 'pros' | 'cons', detailIndex: number) => {
+     setContent(prev => {
+      const newModels = [...prev.financials.models];
+      newModels[modelIndex][type].splice(detailIndex, 1);
+      return { ...prev, financials: { ...prev.financials, models: newModels }};
+    });
+  };
+  
+  const reorderFinancialModelDetails = (modelIndex: number, type: 'pros' | 'cons', startIndex: number, endIndex: number) => {
+     setContent(prev => {
+      const newModels = [...prev.financials.models];
+      const list = newModels[modelIndex][type];
+      const [removed] = list.splice(startIndex, 1);
+      list.splice(endIndex, 0, removed);
+      return { ...prev, financials: { ...prev.financials, models: newModels }};
+    });
+  };
+  
+  const addProcessPhaseDetail = (phaseIndex: number, type: 'benefits' | 'obligations') => {
+    setContent(prev => {
+      const newPhases = [...prev.process.phases];
+      const newDetail = t('新条目', 'New Item');
+      newPhases[phaseIndex][type].push(newDetail);
+      return { ...prev, process: { ...prev.process, phases: newPhases }};
+    });
+  };
+  
+  const deleteProcessPhaseDetail = (phaseIndex: number, type: 'benefits' | 'obligations', detailIndex: number) => {
+    setContent(prev => {
+      const newPhases = [...prev.process.phases];
+      newPhases[phaseIndex][type].splice(detailIndex, 1);
+      return { ...prev, process: { ...prev.process, phases: newPhases }};
+    });
+  };
+  
+  const reorderProcessPhaseDetails = (phaseIndex: number, type: 'benefits' | 'obligations', startIndex: number, endIndex: number) => {
+    setContent(prev => {
+      const newPhases = [...prev.process.phases];
+      const list = newPhases[phaseIndex][type];
+      const [removed] = list.splice(startIndex, 1);
+      list.splice(endIndex, 0, removed);
+      return { ...prev, process: { ...prev.process, phases: newPhases }};
+    });
+  };
+
+
   return (
     <ContentContext.Provider value={{ 
       content, 
@@ -1190,6 +1316,15 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
       addToLibrary,
       removeFromLibrary,
       submitLead,
+      addSectionItem,
+      deleteSectionItem,
+      reorderSectionItems,
+      addFinancialModelDetail,
+      deleteFinancialModelDetail,
+      reorderFinancialModelDetails,
+      addProcessPhaseDetail,
+      deleteProcessPhaseDetail,
+      reorderProcessPhaseDetails,
       saveChanges, 
       resetContent 
     }}>

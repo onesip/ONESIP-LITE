@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState, useEffect, useRef } from 'react';
 import { BarChart, Bar, ResponsiveContainer, Cell, XAxis, Tooltip } from 'recharts';
-import { Bot, TrendingUp, DollarSign, Activity, AlertCircle, ChevronDown, ChevronUp, Check, X } from 'lucide-react';
+import { Bot, TrendingUp, DollarSign, Activity, AlertCircle, ChevronDown, ChevronUp, Check, X, PlusCircle, GripVertical, Trash2 } from 'lucide-react';
 import { analyzeProfitability } from '../services/geminiService';
 import { useContent } from '../contexts/ContentContext';
 import { EditableText } from './ui/Editable';
@@ -16,8 +17,55 @@ interface DetailedModelData {
   profit: number;
 }
 
+const DraggableDetailList = ({ modelIndex, type, items, onAdd, onDelete, onReorder, onUpdate }: any) => {
+    const { isAdmin, language } = useContent();
+    const dragItem = useRef<number | null>(null);
+    const dragOverItem = useRef<number | null>(null);
+
+    const handleDragSort = () => {
+        if (dragItem.current === null || dragOverItem.current === null) return;
+        onReorder(modelIndex, type, dragItem.current, dragOverItem.current);
+        dragItem.current = null;
+        dragOverItem.current = null;
+    };
+    
+    const isPros = type === 'pros';
+
+    return (
+        <div>
+            <span className={`text-xs font-bold ${isPros ? 'text-brand-green-medium' : 'text-red-400'} uppercase tracking-widest mb-3 block`}>
+                {isPros ? `PROS (${language === 'zh' ? '优势' : 'Advantages'})` : `CONS (${language === 'zh' ? '劣势' : 'Disadvantages'})`}
+            </span>
+            <ul className="space-y-3">
+                {items.map((p: any, i: number) => (
+                    <li 
+                        key={i} 
+                        draggable={isAdmin}
+                        onDragStart={() => dragItem.current = i}
+                        onDragEnter={() => dragOverItem.current = i}
+                        onDragEnd={handleDragSort}
+                        onDragOver={(e) => e.preventDefault()}
+                        className="flex items-start gap-3 text-sm text-gray-300 group relative pr-12"
+                    >
+                        {isAdmin && (
+                            <div className="absolute top-1 right-0 flex items-center gap-0.5 bg-black/50 p-0.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button className="p-1 text-gray-400 hover:text-white cursor-grab active:cursor-grabbing"><GripVertical size={14} /></button>
+                                <button onClick={() => onDelete(modelIndex, type, i)} className="p-1 text-red-400 hover:text-red-500"><Trash2 size={14} /></button>
+                            </div>
+                        )}
+                        {isPros ? <Check size={16} className="text-brand-green-medium shrink-0 mt-0.5" /> : <X size={16} className="text-red-400 shrink-0 mt-0.5" />}
+                        <EditableText value={p[language]} onSave={(val) => onUpdate(modelIndex, type, i, val)} />
+                    </li>
+                ))}
+            </ul>
+            {isAdmin && <button onClick={() => onAdd(modelIndex, type)} className="flex items-center gap-1 text-xs text-gray-500 hover:text-white mt-3 ml-7"><PlusCircle size={14}/> 添加一项</button>}
+        </div>
+    );
+};
+
+
 export const FinancialsSection = () => {
-  const { content, updateSection, updateFinancialModel, updateFinancialModelDetail, language } = useContent();
+  const { content, isAdmin, updateSection, updateFinancialModel, updateFinancialModelDetail, addFinancialModelDetail, deleteFinancialModelDetail, reorderFinancialModelDetails, language } = useContent();
   const { financials, calculatorParams } = content;
   const { models } = financials;
 
@@ -279,29 +327,24 @@ export const FinancialsSection = () => {
                     </h4>
                     
                     <div className="flex-1 space-y-8">
-                        <div>
-                            <span className="text-xs font-bold text-brand-green-medium uppercase tracking-widest mb-3 block">PROS ({language === 'zh' ? '优势' : 'Advantages'})</span>
-                            <ul className="space-y-3">
-                                {activeModelInfo.pros.map((p, i) => (
-                                    <li key={i} className="flex items-start gap-3 text-sm text-gray-300">
-                                        <Check size={16} className="text-brand-green-medium shrink-0 mt-0.5" />
-                                        <EditableText value={p[language]} onSave={(val) => updateFinancialModelDetail(models.indexOf(activeModelInfo), 'pros', i, val)} />
-                                    </li>
-                                ))}
-                            </ul>
-                        </div>
-                        
-                        <div>
-                            <span className="text-xs font-bold text-red-400 uppercase tracking-widest mb-3 block">CONS ({language === 'zh' ? '劣势' : 'Disadvantages'})</span>
-                             <ul className="space-y-3">
-                                {activeModelInfo.cons.map((c, i) => (
-                                    <li key={i} className="flex items-start gap-3 text-sm text-gray-300">
-                                        <X size={16} className="text-red-400 shrink-0 mt-0.5" />
-                                        <EditableText value={c[language]} onSave={(val) => updateFinancialModelDetail(models.indexOf(activeModelInfo), 'cons', i, val)} />
-                                    </li>
-                                ))}
-                            </ul>
-                        </div>
+                        <DraggableDetailList 
+                            modelIndex={models.indexOf(activeModelInfo)}
+                            type="pros"
+                            items={activeModelInfo.pros}
+                            onAdd={addFinancialModelDetail}
+                            onDelete={deleteFinancialModelDetail}
+                            onReorder={reorderFinancialModelDetails}
+                            onUpdate={updateFinancialModelDetail}
+                        />
+                         <DraggableDetailList 
+                            modelIndex={models.indexOf(activeModelInfo)}
+                            type="cons"
+                            items={activeModelInfo.cons}
+                            onAdd={addFinancialModelDetail}
+                            onDelete={deleteFinancialModelDetail}
+                            onReorder={reorderFinancialModelDetails}
+                            onUpdate={updateFinancialModelDetail}
+                        />
                     </div>
                 </div>
 

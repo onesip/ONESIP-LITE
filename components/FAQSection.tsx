@@ -1,15 +1,29 @@
-import React, { useState } from 'react';
+
+import React, { useState, useRef } from 'react';
 import { useContent } from '../contexts/ContentContext';
 import { EditableText } from './ui/Editable';
-import { Plus, Minus, HelpCircle } from 'lucide-react';
+import { Plus, Minus, HelpCircle, Trash2, GripVertical, PlusCircle } from 'lucide-react';
 
 export const FAQSection = () => {
-  const { content, updateSection, updateSectionItem, language } = useContent();
+  const { content, isAdmin, updateSection, updateSectionItem, addSectionItem, deleteSectionItem, reorderSectionItems, language } = useContent();
   const { faq } = content;
   const [openIndex, setOpenIndex] = useState<number | null>(0);
 
   const toggleIndex = (index: number) => {
     setOpenIndex(openIndex === index ? null : index);
+  };
+  
+  // Drag and Drop State
+  const dragItem = useRef<number | null>(null);
+  const dragOverItem = useRef<number | null>(null);
+  const [draggedOverIndex, setDraggedOverIndex] = useState<number | null>(null);
+
+  const handleDragSort = () => {
+    if (dragItem.current === null || dragOverItem.current === null) return;
+    reorderSectionItems('faq', dragItem.current, dragOverItem.current);
+    dragItem.current = null;
+    dragOverItem.current = null;
+    setDraggedOverIndex(null);
   };
 
   return (
@@ -32,11 +46,25 @@ export const FAQSection = () => {
             {faq.items.map((item, i) => {
                 const isOpen = openIndex === i;
                 return (
-                    <div 
-                        key={i} 
-                        className={`bg-white rounded-2xl border transition-all duration-300 overflow-hidden
-                        ${isOpen ? 'shadow-lg border-brand-green-dark/20' : 'border-brand-green-dark/5 hover:border-brand-green-dark/20'}`}
+                    <div
+                      key={item.id}
+                      draggable={isAdmin}
+                      onDragStart={() => dragItem.current = i}
+                      onDragEnter={() => { dragOverItem.current = i; setDraggedOverIndex(i); }}
+                      onDragEnd={handleDragSort}
+                      onDragOver={(e) => e.preventDefault()}
+                      onDragLeave={() => setDraggedOverIndex(null)}
+                      className={`relative group bg-white rounded-2xl border transition-all duration-300 overflow-hidden
+                        ${isOpen ? 'shadow-lg border-brand-green-dark/20' : 'border-brand-green-dark/5 hover:border-brand-green-dark/20'}
+                        ${draggedOverIndex === i ? 'ring-2 ring-brand-green-medium ring-offset-2' : ''}
+                      `}
                     >
+                        {isAdmin && (
+                          <div className="absolute top-2 right-14 z-10 flex items-center gap-1 bg-gray-100 p-1 rounded-full shadow-sm opacity-0 group-hover:opacity-100 transition-opacity">
+                              <button className="p-1.5 text-gray-500 hover:text-black hover:bg-white rounded-full cursor-grab active:cursor-grabbing"><GripVertical size={16} /></button>
+                              <button onClick={() => deleteSectionItem('faq', item.id)} className="p-1.5 text-red-500 hover:text-white hover:bg-red-500 rounded-full"><Trash2 size={16} /></button>
+                          </div>
+                        )}
                         <button 
                             onClick={() => toggleIndex(i)}
                             className="w-full flex items-center justify-between p-6 text-left"
@@ -60,6 +88,16 @@ export const FAQSection = () => {
                     </div>
                 );
             })}
+
+            {isAdmin && (
+              <button 
+                onClick={() => addSectionItem('faq')}
+                className="w-full mt-6 flex items-center justify-center gap-2 py-4 border-2 border-dashed border-brand-green-medium/30 rounded-2xl cursor-pointer hover:bg-brand-green-medium/5 hover:border-brand-green-medium transition-all group"
+              >
+                  <PlusCircle size={18} className="text-brand-green-medium/50 group-hover:text-brand-green-medium transition-colors" />
+                  <span className="text-sm font-bold text-brand-green-medium/70 group-hover:text-brand-green-medium">增加新问答</span>
+              </button>
+          )}
         </div>
 
       </div>

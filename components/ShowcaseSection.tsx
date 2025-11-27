@@ -1,12 +1,27 @@
-import React from 'react';
+
+import React, { useRef, useState } from 'react';
 import { useContent } from '../contexts/ContentContext';
 import { EditableText, EditableImage } from './ui/Editable';
-import { MapPin, ArrowUpRight } from 'lucide-react';
+import { MapPin, ArrowUpRight, Trash2, GripVertical, PlusCircle } from 'lucide-react';
 import { LocalizedText } from '../types';
 
 export const ShowcaseSection = () => {
-  const { content, updateSection, updateSectionItem, language } = useContent();
+  const { content, isAdmin, updateSection, updateSectionItem, addSectionItem, deleteSectionItem, reorderSectionItems, language } = useContent();
   const { showcase } = content;
+  
+  // Drag and Drop State
+  const dragItem = useRef<number | null>(null);
+  const dragOverItem = useRef<number | null>(null);
+  const [draggedOverIndex, setDraggedOverIndex] = useState<number | null>(null);
+
+  const handleDragSort = () => {
+    if (dragItem.current === null || dragOverItem.current === null) return;
+    reorderSectionItems('showcase', dragItem.current, dragOverItem.current);
+    dragItem.current = null;
+    dragOverItem.current = null;
+    setDraggedOverIndex(null);
+  };
+
 
   return (
     <div id="showcase" className="py-32 bg-white relative">
@@ -33,9 +48,24 @@ export const ShowcaseSection = () => {
         {/* Gallery Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {showcase.items.map((item, i) => (
-                <div key={i} className="group relative rounded-2xl overflow-hidden aspect-[3/4] cursor-pointer">
+                <div 
+                  key={item.id} 
+                  className="group relative rounded-2xl overflow-hidden aspect-[3/4] cursor-pointer"
+                  draggable={isAdmin}
+                  onDragStart={() => dragItem.current = i}
+                  onDragEnter={() => { dragOverItem.current = i; setDraggedOverIndex(i); }}
+                  onDragEnd={handleDragSort}
+                  onDragOver={(e) => e.preventDefault()}
+                  onDragLeave={() => setDraggedOverIndex(null)}
+                >
+                    {isAdmin && (
+                        <div className="absolute top-2 right-2 z-20 flex items-center gap-1 bg-white/50 backdrop-blur-sm p-1 rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button className="p-1.5 text-gray-500 hover:text-black hover:bg-white rounded-full cursor-grab active:cursor-grabbing"><GripVertical size={16} /></button>
+                            <button onClick={() => deleteSectionItem('showcase', item.id)} className="p-1.5 text-red-500 hover:text-white hover:bg-red-500 rounded-full"><Trash2 size={16} /></button>
+                        </div>
+                    )}
                     {/* Image */}
-                    <div className="absolute inset-0 transition-transform duration-700 group-hover:scale-105">
+                    <div className={`absolute inset-0 transition-all duration-700 group-hover:scale-105 ${draggedOverIndex === i ? 'outline outline-4 outline-brand-green-medium outline-offset-4 rounded-2xl' : ''}`}>
                          <EditableImage 
                             src={item.image || ""} 
                             alt={item.title[language]} 
@@ -48,7 +78,7 @@ export const ShowcaseSection = () => {
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60 group-hover:opacity-80 transition-opacity"></div>
 
                     {/* Content */}
-                    <div className="absolute top-6 left-6">
+                    <div className="absolute top-6 left-6 z-10">
                         <div className="inline-flex items-center gap-1.5 bg-white/20 backdrop-blur-md px-3 py-1.5 rounded-full text-xs font-bold text-white border border-white/20">
                              <MapPin size={10} />
                              <EditableText 
@@ -58,7 +88,7 @@ export const ShowcaseSection = () => {
                         </div>
                     </div>
 
-                    <div className="absolute bottom-0 left-0 w-full p-8 translate-y-2 group-hover:translate-y-0 transition-transform duration-500">
+                    <div className="absolute bottom-0 left-0 w-full p-8 translate-y-2 group-hover:translate-y-0 transition-transform duration-500 z-10">
                         <div className="text-white mb-1 font-bold text-xl flex items-center justify-between">
                              <EditableText value={item.title[language]} onSave={(val) => updateSectionItem('showcase', i, 'title', val)} />
                              <ArrowUpRight size={20} className="opacity-0 group-hover:opacity-100 transition-opacity"/>
@@ -79,6 +109,15 @@ export const ShowcaseSection = () => {
                     </div>
                 </div>
             ))}
+             {isAdmin && (
+              <button 
+                onClick={() => addSectionItem('showcase')}
+                className="flex flex-col items-center justify-center min-h-[300px] aspect-[3/4] border-2 border-dashed border-brand-green-medium/30 rounded-2xl cursor-pointer hover:bg-brand-green-medium/5 hover:border-brand-green-medium transition-all group"
+              >
+                  <PlusCircle size={32} className="text-brand-green-medium/50 group-hover:text-brand-green-medium transition-colors mb-2" />
+                  <span className="text-sm font-bold text-brand-green-medium/70 group-hover:text-brand-green-medium">增加新案例</span>
+              </button>
+          )}
         </div>
 
       </div>

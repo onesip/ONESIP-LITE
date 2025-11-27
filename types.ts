@@ -65,6 +65,7 @@ export interface HeroContent {
 }
 
 export interface SectionItem {
+  id: string;
   title: LocalizedText;
   desc: LocalizedText;
   tag?: LocalizedText;
@@ -77,6 +78,7 @@ export interface ShowcaseItem extends SectionItem {
 }
 
 export interface FAQItem {
+  id: string;
   question: LocalizedText;
   answer: LocalizedText;
 }

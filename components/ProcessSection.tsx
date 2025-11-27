@@ -1,10 +1,68 @@
-import React, { useState } from 'react';
-import { ShieldCheck, CheckCircle2, AlertTriangle, ArrowRight, Zap, Gift, Scale } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import { ShieldCheck, CheckCircle2, AlertTriangle, ArrowRight, Zap, Gift, Scale, Trash2, GripVertical, PlusCircle } from 'lucide-react';
 import { useContent } from '../contexts/ContentContext';
 import { EditableText } from './ui/Editable';
 
+// FIX: Added a dedicated props interface and used React.FC to correctly type the component
+// and resolve issues with the 'key' prop being passed down.
+interface DraggableListItemProps {
+    item: any;
+    index: number;
+    listType: 'benefits' | 'obligations';
+    phaseIndex: number;
+    onReorder: (startIndex: number, endIndex: number) => void;
+    onUpdate: (index: number, value: string) => void;
+    onDelete: (index: number) => void;
+}
+
+const DraggableListItem: React.FC<DraggableListItemProps> = ({
+    item, index, listType, phaseIndex, onReorder, onUpdate, onDelete
+}) => {
+    const { isAdmin, language } = useContent();
+    const dragItem = useRef<number | null>(null);
+    const dragOverItem = useRef<number | null>(null);
+    const [isDraggingOver, setIsDraggingOver] = useState(false);
+
+    const handleDragSort = () => {
+        if (dragItem.current === null || dragOverItem.current === null) return;
+        onReorder(dragItem.current, dragOverItem.current);
+        dragItem.current = null;
+        dragOverItem.current = null;
+    };
+
+    const isBenefit = listType === 'benefits';
+    
+    return (
+        <li
+            draggable={isAdmin}
+            onDragStart={() => dragItem.current = index}
+            onDragEnter={() => { dragOverItem.current = index; setIsDraggingOver(true); }}
+            onDragLeave={() => setIsDraggingOver(false)}
+            onDragEnd={() => { handleDragSort(); setIsDraggingOver(false); }}
+            onDragOver={(e) => e.preventDefault()}
+            className={`flex items-start gap-4 group relative transition-all duration-300 p-2 rounded-lg ${isDraggingOver ? 'bg-brand-green-medium/10' : ''}`}
+        >
+            {isAdmin && (
+                <div className="absolute top-1 -left-8 z-10 flex items-center gap-0.5 bg-white shadow-sm border rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button className="p-1 text-gray-400 hover:text-black cursor-grab active:cursor-grabbing"><GripVertical size={14} /></button>
+                    <button onClick={() => onDelete(index)} className="p-1 text-red-400 hover:text-red-600"><Trash2 size={14} /></button>
+                </div>
+            )}
+            {isBenefit ? (
+                <CheckCircle2 size={20} className="text-brand-green-medium mt-1 shrink-0 group-hover:scale-110 transition-transform" />
+            ) : (
+                <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-gray-500 shrink-0"></span>
+            )}
+            <span className={`${isBenefit ? 'text-gray-800 leading-relaxed font-bold' : 'text-sm text-gray-700 font-medium leading-relaxed'}`}>
+                <EditableText value={item[language]} onSave={(val) => onUpdate(index, val)} />
+            </span>
+        </li>
+    );
+};
+
+
 export const ProcessSection = () => {
-  const { content, updateSection, updateProcessPhase, updateProcessPhaseDetail, language } = useContent();
+  const { content, isAdmin, updateSection, updateProcessPhase, addProcessPhaseDetail, deleteProcessPhaseDetail, reorderProcessPhaseDetails, updateProcessPhaseDetail, language } = useContent();
   const { process } = content;
   const [activeTab, setActiveTab] = useState(0);
 
@@ -77,17 +135,21 @@ export const ProcessSection = () => {
                                  </span>
                                  <EditableText value={phase.benefitsTitle[language]} onSave={(val) => updateProcessPhase(idx, 'benefitsTitle', val)} />
                              </h4>
-                             <ul className="space-y-6">
+                             <ul className="space-y-4">
                                  {phase.benefits.map((benefit, bIdx) => (
-                                     <li key={bIdx} className="flex items-start gap-4 group">
-                                         <CheckCircle2 size={20} className="text-brand-green-medium mt-1 shrink-0 group-hover:scale-110 transition-transform" />
-                                         {/* Enhanced Text Color */}
-                                         <span className="text-gray-800 leading-relaxed font-bold">
-                                             <EditableText value={benefit[language]} onSave={(val) => updateProcessPhaseDetail(idx, 'benefits', bIdx, val)} />
-                                         </span>
-                                     </li>
+                                     <DraggableListItem 
+                                       key={bIdx}
+                                       item={benefit}
+                                       index={bIdx}
+                                       listType="benefits"
+                                       phaseIndex={idx}
+                                       onReorder={(start, end) => reorderProcessPhaseDetails(idx, 'benefits', start, end)}
+                                       onUpdate={(index, value) => updateProcessPhaseDetail(idx, 'benefits', index, value)}
+                                       onDelete={(index) => deleteProcessPhaseDetail(idx, 'benefits', index)}
+                                     />
                                  ))}
                              </ul>
+                             {isAdmin && <button onClick={() => addProcessPhaseDetail(idx, 'benefits')} className="flex items-center gap-2 text-sm text-brand-green-medium hover:text-brand-green-dark font-bold mt-6 ml-10 transition-colors"><PlusCircle size={16}/> 添加新权益</button>}
                          </div>
 
                          {/* Right: Obligations (The "Rules") */}
@@ -101,16 +163,21 @@ export const ProcessSection = () => {
                                  </span>
                                  <EditableText value={phase.obligationsTitle[language]} onSave={(val) => updateProcessPhase(idx, 'obligationsTitle', val)} />
                              </h4>
-                             <ul className="space-y-4">
+                             <ul className="space-y-2">
                                  {phase.obligations.map((ob, oIdx) => (
-                                     <li key={oIdx} className="flex items-start gap-3 text-sm text-gray-700 font-medium">
-                                         <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-gray-500 shrink-0"></span>
-                                         <span className="leading-relaxed">
-                                             <EditableText value={ob[language]} onSave={(val) => updateProcessPhaseDetail(idx, 'obligations', oIdx, val)} />
-                                         </span>
-                                     </li>
+                                     <DraggableListItem 
+                                       key={oIdx}
+                                       item={ob}
+                                       index={oIdx}
+                                       listType="obligations"
+                                       phaseIndex={idx}
+                                       onReorder={(start, end) => reorderProcessPhaseDetails(idx, 'obligations', start, end)}
+                                       onUpdate={(index, value) => updateProcessPhaseDetail(idx, 'obligations', index, value)}
+                                       onDelete={(index) => deleteProcessPhaseDetail(idx, 'obligations', index)}
+                                     />
                                  ))}
                              </ul>
+                              {isAdmin && <button onClick={() => addProcessPhaseDetail(idx, 'obligations')} className="flex items-center gap-2 text-sm text-gray-600 hover:text-black font-bold mt-6 ml-8 transition-colors"><PlusCircle size={16}/> 添加新义务</button>}
                              
                              {idx === 0 && (
                                  <div className="mt-12 p-4 bg-brand-green-dark text-white rounded-xl text-xs leading-relaxed shadow-lg">
