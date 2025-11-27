@@ -1163,7 +1163,7 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
         console.error("CRITICAL: Failed to serialize and save content!", e);
         // This alert is crucial for user feedback on silent failures.
         alert(
-          "保存失败！\n\n出现了一个严重错误，导致内容无法被保存。这通常是由于编辑了某个项目（例如一个产品）后导致的数据结构问题。\n\n请尝试刷新页面。如果问题仍然存在，请联系开发人员。\n\n错误信息: " + e.message
+          "保存失败！\n\n出现了一个严重错误，导致内容无法被保存。这可能是由于：\n1. 数据结构问题（例如编辑产品后）。\n2. 网络连接中断。\n3. 内容过大（例如上传了太多图片）。\n\n请尝试刷新页面。如果问题仍然存在，请联系开发人员。\n\n详细错误: " + e.message
         );
     } finally {
         setTimeout(() => setIsSyncing(false), 500);

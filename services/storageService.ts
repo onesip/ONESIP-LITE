@@ -79,7 +79,23 @@ export const saveCloudContent = async (binIdArg: string, apiKeyArg: string, cont
     });
 
     if (!response.ok) {
-      throw new Error(`Cloud save failed: ${response.statusText}`);
+      let errorDetails = `Status: ${response.status}`;
+      try {
+        const errorJson = await response.json();
+        // JSONBin often puts the error in a 'message' property
+        if (errorJson.message) {
+          errorDetails += ` - ${errorJson.message}`;
+        } else {
+          // Fallback to stringifying if message is not found
+          errorDetails += ` - ${JSON.stringify(errorJson)}`;
+        }
+      } catch (e) {
+        // If the body isn't JSON, just use the statusText if available
+        if (response.statusText) {
+          errorDetails += ` ${response.statusText}`;
+        }
+      }
+      throw new Error(`Cloud save failed: ${errorDetails}`);
     }
     
     return true;
