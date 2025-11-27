@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 import { SiteContent, MenuItem, HeroContent, SectionItem, FinancialModelItem, ProcessPhase, CloudConfig, ShowcaseItem, FAQItem, Lead, Language, LocalizedText, CalculatorParams } from '../types';
 import { fetchCloudContent, saveCloudContent } from '../services/storageService';
@@ -727,7 +726,7 @@ const ContentContext = createContext<ContentContextType | undefined>(undefined);
 
 export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [content, setContent] = useState<SiteContent>(defaultContent);
-  const [cloudConfig, setCloudConfig] = useState<CloudConfig>({ enabled: false, binId: '', libraryBinId: '', apiKey: '' });
+  const [cloudConfig, setCloudConfig] = useState<CloudConfig>({ enabled: false, binId: '', libraryBinIds: [], apiKey: '' });
   const [isAdmin, setIsAdmin] = useState(false);
   const [isDashboardOpen, setIsDashboardOpen] = useState(false);
   const [isLeadFormOpen, setIsLeadFormOpen] = useState(false);
@@ -759,13 +758,12 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
     const init = async () => {
       setIsLoading(true);
       try {
-        let currentConfig: CloudConfig = { enabled: false, binId: '', libraryBinId: '', apiKey: '' };
+        let currentConfig: CloudConfig = { enabled: false, binId: '', libraryBinIds: [], apiKey: '' };
 
         // Hardcoded config from config.ts takes precedence for ease of deployment
         if (APP_CONFIG.ENABLE_CLOUD_SYNC && APP_CONFIG.CLOUD_BIN_ID && APP_CONFIG.CLOUD_API_KEY) {
              currentConfig.enabled = true;
              currentConfig.apiKey = APP_CONFIG.CLOUD_API_KEY;
-             // NOTE: libraryBinId is not hardcoded, must come from localStorage
              currentConfig.binId = APP_CONFIG.CLOUD_BIN_ID; 
         } 
 
@@ -773,17 +771,17 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
         if (savedCloudConfig) {
             try {
                 const parsed = JSON.parse(savedCloudConfig);
-                // Merge, allowing localStorage to provide bin IDs if not hardcoded
+                // Merge, allowing localStorage to provide libraryBinIds
                 currentConfig = { ...currentConfig, ...parsed };
             } catch (e) {}
         }
 
         setCloudConfig(currentConfig);
 
-        if (currentConfig.enabled && currentConfig.binId && currentConfig.libraryBinId && currentConfig.apiKey) {
+        if (currentConfig.enabled && currentConfig.binId && currentConfig.libraryBinIds.length > 0 && currentConfig.apiKey) {
             try {
-                console.log("Fetching from Cloud Bins...", currentConfig.binId, currentConfig.libraryBinId);
-                const cloudData = await fetchCloudContent(currentConfig.binId, currentConfig.apiKey, currentConfig.libraryBinId);
+                console.log("Fetching from Cloud Bins...", currentConfig.binId, ...currentConfig.libraryBinIds);
+                const cloudData = await fetchCloudContent(currentConfig.binId, currentConfig.apiKey, currentConfig.libraryBinIds);
                 if (cloudData) {
                     const migratedData = migrateContent(cloudData);
                     setContent(prev => ({ ...defaultContent, ...migratedData }));
@@ -1145,12 +1143,12 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
         
         localStorage.setItem('onesip_content', contentString);
         
-        const { binId, libraryBinId, apiKey } = cloudConfig;
+        const { binId, libraryBinIds, apiKey } = cloudConfig;
 
-        if (binId && libraryBinId && apiKey) {
-            await saveCloudContent(binId, libraryBinId, apiKey, contentToSave);
+        if (binId && libraryBinIds.length > 0 && apiKey) {
+            await saveCloudContent(binId, libraryBinIds, apiKey, contentToSave);
         } else {
-            console.warn("Cloud save skipped: Missing binId, libraryBinId, or apiKey.");
+            console.warn("Cloud save skipped: Missing binId, libraryBinIds, or apiKey.");
         }
     } catch (e: any) {
         console.error("CRITICAL: Failed to save content!", e);
@@ -1183,11 +1181,11 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
         const contentString = JSON.stringify(newContent);
         localStorage.setItem('onesip_content', contentString);
     
-        const { binId, libraryBinId, apiKey } = cloudConfig;
+        const { binId, libraryBinIds, apiKey } = cloudConfig;
 
-        if (binId && libraryBinId && apiKey) {
+        if (binId && libraryBinIds.length > 0 && apiKey) {
             setIsSyncing(true);
-            await saveCloudContent(binId, libraryBinId, apiKey, newContent);
+            await saveCloudContent(binId, libraryBinIds, apiKey, newContent);
         }
     } catch (e) {
         console.error("Cloud sync on lead submission failed", e);

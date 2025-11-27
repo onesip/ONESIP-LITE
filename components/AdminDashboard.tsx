@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from 'react';
 import { useContent } from '../contexts/ContentContext';
 import { useChat } from '../contexts/ChatContext';
@@ -244,20 +243,23 @@ const DashboardLeads = () => {
 const DashboardSettings = () => {
     const { cloudConfig, updateCloudConfig, content } = useContent();
     const [localBinId, setLocalBinId] = useState(cloudConfig.binId);
-    const [localLibraryBinId, setLocalLibraryBinId] = useState(cloudConfig.libraryBinId);
+    // FIX: Changed from singular libraryBinId to plural libraryBinIds (array)
+    const [localLibraryBinIds, setLocalLibraryBinIds] = useState(cloudConfig.libraryBinIds.length > 0 ? cloudConfig.libraryBinIds : Array(10).fill(''));
     const [localApiKey, setLocalApiKey] = useState(cloudConfig.apiKey);
     const [isEnabled, setIsEnabled] = useState(cloudConfig.enabled);
     const [isTesting, setIsTesting] = useState(false);
     const [isCreating, setIsCreating] = useState(false);
 
     const handleTestConnection = async () => {
-        if (!localBinId || !localLibraryBinId || !localApiKey) {
-            alert("请先填写所有3个字段: API Key, Main Bin ID, 和 Library Bin ID");
+        // FIX: Updated validation for multiple bin IDs
+        if (!localBinId || localLibraryBinIds.some(id => !id) || !localApiKey) {
+            alert("请先填写所有字段: API Key, Main Bin ID, 和 10个 Library Bin ID");
             return;
         }
         setIsTesting(true);
         try {
-            await fetchCloudContent(localBinId, localApiKey, localLibraryBinId);
+            // FIX: Pass array of bin IDs to fetch function
+            await fetchCloudContent(localBinId, localApiKey, localLibraryBinIds);
             alert("✅ 连接成功！云端配置有效，可以使用。");
         } catch (e) {
             alert("❌ 连接失败。请检查您的所有 ID 和 API Key 是否正确。");
@@ -271,21 +273,30 @@ const DashboardSettings = () => {
             alert("请先在下方填入 X-Master-Key (API Key)");
             return;
         }
+        // FIX: Added confirmation for creating multiple bins
+        if (!confirm("此操作将创建11个新的云端存储 Bin (1个主内容 + 10个媒体库)。确定要继续吗？")) {
+            return;
+        }
         setIsCreating(true);
         try {
-            const { binId, libraryBinId } = await createCloudBins(localApiKey, content);
+            // FIX: Pass mainContent (without library) to createCloudBins
+            const { library, ...mainContent } = content;
+            // FIX: Destructure plural libraryBinIds from response
+            const { binId, libraryBinIds } = await createCloudBins(localApiKey, mainContent);
+            
             setLocalBinId(binId);
-            setLocalLibraryBinId(libraryBinId);
+            setLocalLibraryBinIds(libraryBinIds); // FIX: Update state with array
             setIsEnabled(true);
             
             updateCloudConfig({
                 enabled: true,
                 binId: binId,
-                libraryBinId: libraryBinId,
+                libraryBinIds: libraryBinIds, // FIX: Update config with array
                 apiKey: localApiKey
             });
             
-            alert(`🎉 成功！\n\n已自动创建主仓库和媒体库仓库。\n配置已自动保存并开启。\n\n您现在可以去前台编辑内容了，所有修改点击保存后都会同步到云端。`);
+            // FIX: Updated alert message
+            alert(`🎉 成功！\n\n已自动创建主仓库和10个媒体库仓库。\n配置已自动保存并开启。\n\n请刷新页面以使新配置生效。`);
         } catch (e) {
             alert("❌ 自动创建失败。\n请检查您的 API Key 是否正确（不要有多余空格）。\n请确保复制的是 'Master Key' 而不是 'Access Key'。");
             console.error(e);
@@ -298,7 +309,7 @@ const DashboardSettings = () => {
         updateCloudConfig({
             enabled: isEnabled,
             binId: localBinId,
-            libraryBinId: localLibraryBinId,
+            libraryBinIds: localLibraryBinIds, // FIX: Save array of bin IDs
             apiKey: localApiKey
         });
         alert("设置已保存！请刷新页面以加载云端数据。");
@@ -314,7 +325,7 @@ const DashboardSettings = () => {
                      <div className="flex-1">
                          <h3 className="text-2xl font-bold text-white mb-2">云端数据同步 (JSONBin)</h3>
                          <p className="text-gray-400 leading-relaxed mb-6">
-                             为了解决免费版100kb的容量限制，系统采用主数据+媒体库分离存储。请确保所有字段都已配置。
+                             为了解决免费版100kb的容量限制，系统采用主数据 + 10个媒体库的分离存储方案。所有字段都需要配置才能正常同步。
                          </p>
                          
                          <div className="bg-[#111211] p-6 rounded-xl border border-white/5 space-y-6">
@@ -334,41 +345,53 @@ const DashboardSettings = () => {
                                  <input 
                                     value={localApiKey}
                                     onChange={(e) => setLocalApiKey(e.target.value)}
-                                    placeholder="以 $2a$10$ 开头..."
+                                    placeholder="已从 config.ts 自动加载..."
                                     type="password"
                                     className="w-full bg-[#1C1C1E] border border-white/10 rounded-lg p-3 text-white focus:border-brand-green-medium outline-none transition-colors font-mono text-sm"
+                                    readOnly={!!APP_CONFIG.CLOUD_API_KEY}
                                  />
-                                 <p className="text-[10px] text-gray-600 mt-1">请确保复制的是黄色的 "Master Key"。</p>
+                                 <p className="text-[10px] text-gray-600 mt-1">
+                                     {APP_CONFIG.CLOUD_API_KEY ? "API Key 已在 config.ts 中硬编码，无需手动输入。" : "请确保复制的是黄色的 'Master Key'。"}
+                                 </p>
                              </div>
 
                              <div>
                                  <label className="text-xs text-gray-500 uppercase tracking-wider font-bold mb-2 block">2. 生成/填入 Bin IDs</label>
-                                 <div className="flex items-center gap-2 mb-2">
-                                     <span className="w-24 shrink-0 text-gray-400 text-xs">主内容 Bin ID:</span>
+                                 <div className="space-y-2">
                                      <input 
                                         value={localBinId}
                                         onChange={(e) => setLocalBinId(e.target.value)}
                                         placeholder="主内容 Bin ID..."
-                                        className="flex-1 bg-[#1C1C1E] border border-white/10 rounded-lg p-2 text-white focus:border-brand-green-medium outline-none transition-colors font-mono text-sm"
+                                        className="w-full bg-[#1C1C1E] border border-white/10 rounded-lg p-2 text-white focus:border-brand-green-medium outline-none transition-colors font-mono text-sm"
+                                        readOnly={!!APP_CONFIG.CLOUD_BIN_ID}
                                      />
-                                 </div>
-                                 <div className="flex items-center gap-2">
-                                     <span className="w-24 shrink-0 text-gray-400 text-xs">媒体库 Bin ID:</span>
-                                     <input 
-                                        value={localLibraryBinId}
-                                        onChange={(e) => setLocalLibraryBinId(e.target.value)}
-                                        placeholder="媒体库 Bin ID..."
-                                        className="flex-1 bg-[#1C1C1E] border border-white/10 rounded-lg p-2 text-white focus:border-brand-green-medium outline-none transition-colors font-mono text-sm"
-                                     />
+                                     {APP_CONFIG.CLOUD_BIN_ID && <p className="text-[10px] text-gray-600 -mt-1 pl-1">主内容 Bin ID 已在 config.ts 中硬编码。</p>}
+                                     
+                                     <div className="pt-2 text-xs text-gray-500">媒体库 Bin IDs (10个):</div>
+                                     <div className="grid grid-cols-2 gap-2">
+                                     {localLibraryBinIds.map((id, i) => (
+                                         <input 
+                                            key={i}
+                                            value={id}
+                                            onChange={(e) => {
+                                                const newIds = [...localLibraryBinIds];
+                                                newIds[i] = e.target.value;
+                                                setLocalLibraryBinIds(newIds);
+                                            }}
+                                            placeholder={`媒体库 #${i+1}`}
+                                            className="w-full bg-[#1C1C1E] border border-white/10 rounded-lg p-2 text-white focus:border-brand-green-medium outline-none transition-colors font-mono text-xs"
+                                         />
+                                     ))}
+                                     </div>
                                  </div>
                                   <button
                                         onClick={handleAutoCreate}
                                         disabled={isCreating || !localApiKey}
                                         className="w-full mt-4 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:bg-gray-700 text-white px-5 py-2 rounded-lg text-xs font-bold whitespace-nowrap flex items-center justify-center gap-2 transition-all shadow-lg shadow-indigo-500/20"
-                                        title="只需填好 Key，点击此按钮帮您自动生成两个 Bin ID"
+                                        title="只需填好 Key，点击此按钮帮您自动生成全部 11 个 Bin ID"
                                      >
                                          {isCreating ? <Loader2 size={14} className="animate-spin"/> : <Sparkles size={14} />}
-                                         {isCreating ? "创建中..." : "一键自动生成全部"}
+                                         {isCreating ? "创建中..." : "一键自动生成全部 (1+10)"}
                                   </button>
                              </div>
                              
