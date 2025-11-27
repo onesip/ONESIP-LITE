@@ -676,7 +676,8 @@ interface ContentContextType {
   isDashboardOpen: boolean;
   dataSource: 'cloud' | 'local' | 'default'; 
   isLeadFormOpen: boolean;
-  language: Language; // NEW
+  language: Language;
+  isCloudConfigured: boolean;
   
   login: () => void;
   logout: () => void;
@@ -685,7 +686,7 @@ interface ContentContextType {
   closeDashboard: () => void;
   openLeadForm: () => void;
   closeLeadForm: () => void;
-  toggleLanguage: () => void; // NEW
+  toggleLanguage: () => void;
   
   updateCloudConfig: (config: Partial<CloudConfig>) => void;
   updateHero: (field: keyof HeroContent, value: string) => void;
@@ -705,12 +706,10 @@ interface ContentContextType {
   removeFromLibrary: (url: string) => void;
   submitLead: (lead: Omit<Lead, 'id' | 'timestamp' | 'status'>) => Promise<void>;
   
-  // NEW: Generic List Management
   addSectionItem: (section: 'model' | 'partner' | 'showcase' | 'faq') => void;
   deleteSectionItem: (section: 'model' | 'partner' | 'showcase' | 'faq', id: string) => void;
   reorderSectionItems: (section: 'model' | 'partner' | 'showcase' | 'faq', startIndex: number, endIndex: number) => void;
 
-  // NEW: Nested List Management
   addFinancialModelDetail: (modelIndex: number, type: 'pros' | 'cons') => void;
   deleteFinancialModelDetail: (modelIndex: number, type: 'pros' | 'cons', detailIndex: number) => void;
   reorderFinancialModelDetails: (modelIndex: number, type: 'pros' | 'cons', startIndex: number, endIndex: number) => void;
@@ -734,6 +733,7 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [isSyncing, setIsSyncing] = useState(false);
   const [dataSource, setDataSource] = useState<'cloud' | 'local' | 'default'>('default');
   const [language, setLanguage] = useState<Language>('zh');
+  const [isCloudConfigured, setIsCloudConfigured] = useState(false);
   const isInitialMount = useRef(true);
 
   // --- AUTO TRANSLATE HELPER ---
@@ -776,9 +776,11 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
             } catch (e) {}
         }
 
+        const isConfigComplete = currentConfig.enabled && !!currentConfig.binId && !!currentConfig.apiKey && Array.isArray(currentConfig.libraryBinIds) && currentConfig.libraryBinIds.length === 10 && currentConfig.libraryBinIds.every(id => !!id);
+        setIsCloudConfigured(isConfigComplete);
         setCloudConfig(currentConfig);
 
-        if (currentConfig.enabled && currentConfig.binId && currentConfig.libraryBinIds.length > 0 && currentConfig.apiKey) {
+        if (isConfigComplete) {
             try {
                 console.log("Fetching from Cloud Bins...", currentConfig.binId, ...currentConfig.libraryBinIds);
                 const cloudData = await fetchCloudContent(currentConfig.binId, currentConfig.apiKey, currentConfig.libraryBinIds);
@@ -831,6 +833,10 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
       setCloudConfig(prev => {
           const newConfig = { ...prev, ...config };
           localStorage.setItem('onesip_cloud_config', JSON.stringify(newConfig));
+          
+          const isConfigComplete = newConfig.enabled && !!newConfig.binId && !!newConfig.apiKey && Array.isArray(newConfig.libraryBinIds) && newConfig.libraryBinIds.length === 10 && newConfig.libraryBinIds.every(id => !!id);
+          setIsCloudConfigured(isConfigComplete);
+          
           return newConfig;
       });
   };
@@ -1145,10 +1151,10 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
         
         const { binId, libraryBinIds, apiKey } = cloudConfig;
 
-        if (binId && libraryBinIds.length > 0 && apiKey) {
+        if (isCloudConfigured && binId && libraryBinIds.length > 0 && apiKey) {
             await saveCloudContent(binId, libraryBinIds, apiKey, contentToSave);
         } else {
-            console.warn("Cloud save skipped: Missing binId, libraryBinIds, or apiKey.");
+            console.warn("Cloud save skipped: configuration incomplete.");
         }
     } catch (e: any) {
         console.error("CRITICAL: Failed to save content!", e);
@@ -1162,7 +1168,7 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
     } finally {
         setTimeout(() => setIsSyncing(false), 500);
     }
-  }, [content, isLoading, cloudConfig]);
+  }, [content, isLoading, cloudConfig, isCloudConfigured]);
 
   const submitLead = async (leadData: Omit<Lead, 'id' | 'timestamp' | 'status'>) => {
      const newLead: Lead = {
@@ -1183,7 +1189,7 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
     
         const { binId, libraryBinIds, apiKey } = cloudConfig;
 
-        if (binId && libraryBinIds.length > 0 && apiKey) {
+        if (isCloudConfigured && binId && libraryBinIds.length > 0 && apiKey) {
             setIsSyncing(true);
             await saveCloudContent(binId, libraryBinIds, apiKey, newContent);
         }
@@ -1306,6 +1312,7 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
       dataSource,
       isLeadFormOpen,
       language,
+      isCloudConfigured,
       login, 
       logout,
       toggleAdmin,

@@ -43,7 +43,7 @@ import { APP_CONFIG } from '../config';
 
 // --- Sub-Component: Dashboard Home (Launcher) ---
 const DashboardHome = ({ onNavigate }: { onNavigate: (tab: any) => void }) => {
-  const { closeDashboard, content, toggleSectionVisibility } = useContent();
+  const { closeDashboard, content, toggleSectionVisibility, isCloudConfigured } = useContent();
 
   const modules = [
     {
@@ -95,6 +95,24 @@ const DashboardHome = ({ onNavigate }: { onNavigate: (tab: any) => void }) => {
   return (
     <div className="space-y-10 animate-fade-in max-w-5xl mx-auto mt-10 pb-20">
       
+      {!isCloudConfigured && (
+        <div className="bg-red-900/50 border border-red-500/30 rounded-2xl p-6 text-center animate-fade-in mb-10">
+            <div className="flex items-center justify-center gap-3">
+                <AlertCircle className="text-red-400" size={24}/>
+                <h3 className="text-xl font-bold text-white">需要操作：云端存储未配置</h3>
+            </div>
+            <p className="text-red-300/80 text-sm mt-3 max-w-xl mx-auto">
+                系统检测到媒体库未完全设置，将无法同步图片。请前往 <strong>系统设置</strong> 页面，点击 “一键生成媒体库” 按钮完成配置。
+            </p>
+            <button 
+                onClick={() => onNavigate('settings')}
+                className="mt-4 bg-white text-black px-5 py-2 rounded-lg text-xs font-bold hover:bg-gray-200 transition-colors"
+            >
+                前往设置
+            </button>
+        </div>
+      )}
+
       <div className="text-center space-y-4 mb-16">
         <h2 className="text-4xl font-black text-white">欢迎回到控制台</h2>
         <p className="text-gray-400">请选择您要管理的核心模块</p>
@@ -242,7 +260,7 @@ const DashboardLeads = () => {
 
 // --- Sub-Component: Settings (Cloud) ---
 const DashboardSettings = () => {
-    const { cloudConfig, updateCloudConfig, content } = useContent();
+    const { cloudConfig, updateCloudConfig, content, isCloudConfigured } = useContent();
     const [localLibraryBinIds, setLocalLibraryBinIds] = useState(cloudConfig.libraryBinIds.length > 0 ? cloudConfig.libraryBinIds : Array(10).fill(''));
     const [isEnabled, setIsEnabled] = useState(cloudConfig.enabled);
     const [isTesting, setIsTesting] = useState(false);
@@ -311,6 +329,29 @@ const DashboardSettings = () => {
 
     return (
         <div className="max-w-3xl mx-auto space-y-10 animate-fade-in">
+             {!isCloudConfigured && (
+                <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4 flex items-start gap-3">
+                    <AlertCircle className="text-yellow-500 mt-1 shrink-0" size={18}/>
+                    <div>
+                        <h4 className="text-yellow-500 font-bold text-sm">配置不完整</h4>
+                        <p className="text-yellow-500/70 text-xs mt-1">
+                            系统检测到媒体库 Bin IDs 未设置。请点击下方的 <strong>一键生成媒体库</strong> 按钮来完成初始化。
+                        </p>
+                    </div>
+                </div>
+             )}
+             {isCloudConfigured && (
+                <div className="bg-green-500/10 border border-green-500/20 rounded-xl p-4 flex items-start gap-3">
+                    <CheckCircle2 className="text-green-500 mt-1 shrink-0" size={18}/>
+                    <div>
+                        <h4 className="text-green-500 font-bold text-sm">配置完成</h4>
+                        <p className="text-green-500/70 text-xs mt-1">
+                            云端同步已完全配置，所有更改都将自动保存到云端。
+                        </p>
+                    </div>
+                </div>
+             )}
+
              <div className="bg-[#1C1C1E] border border-white/5 rounded-3xl p-8">
                  <div className="flex items-start gap-6">
                      <div className="w-16 h-16 rounded-2xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center shrink-0">
@@ -352,7 +393,7 @@ const DashboardSettings = () => {
                                   <button
                                         onClick={handleAutoCreate}
                                         disabled={isCreating || !localApiKey}
-                                        className="w-full mt-4 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:bg-gray-700 text-white px-5 py-2 rounded-lg text-xs font-bold whitespace-nowrap flex items-center justify-center gap-2 transition-all shadow-lg shadow-indigo-500/20"
+                                        className={`w-full mt-4 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:bg-gray-700 text-white px-5 py-2 rounded-lg text-xs font-bold whitespace-nowrap flex items-center justify-center gap-2 transition-all shadow-lg shadow-indigo-500/20 ${!isCloudConfigured ? 'animate-pulse' : ''}`}
                                         title="使用已配置的 API Key 自动生成 10 个媒体库 Bin"
                                      >
                                          {isCreating ? <Loader2 size={14} className="animate-spin"/> : <Sparkles size={14} />}

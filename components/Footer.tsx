@@ -5,8 +5,42 @@ import { useContent } from '../contexts/ContentContext';
 import { EditableText } from './ui/Editable';
 
 export const Footer = ({ onOpenAdmin }: { onOpenAdmin?: () => void }) => {
-  const { content, updateSection, dataSource, language } = useContent();
+  const { content, updateSection, dataSource, isAdmin, isCloudConfigured, language } = useContent();
   const { footer } = content;
+
+  const getStatusIndicator = () => {
+    if (dataSource === 'cloud') {
+      return (
+        <>
+          <Cloud size={10} className="text-green-600" />
+          <span className="text-[9px] font-bold text-green-700">CLOUD SYNCED</span>
+        </>
+      );
+    }
+    if (isAdmin) {
+      if (!isCloudConfigured) {
+        return (
+          <>
+            <AlertCircle size={10} className="text-yellow-500" />
+            <span className="text-[9px] font-bold text-yellow-600">SETUP REQUIRED</span>
+          </>
+        );
+      } else {
+        return (
+          <>
+            <HardDrive size={10} className="text-orange-500" />
+            <span className="text-[9px] font-bold text-orange-600">LOCAL (ADMIN)</span>
+          </>
+        );
+      }
+    }
+    return (
+      <>
+        <AlertCircle size={10} className="text-gray-400" />
+        <span className="text-[9px] font-bold text-gray-500">OFFLINE</span>
+      </>
+    );
+  };
 
   return (
     <footer id="contact" className="bg-brand-cream pt-20 pb-10 border-t border-brand-green-light/20">
@@ -48,25 +82,8 @@ export const Footer = ({ onOpenAdmin }: { onOpenAdmin?: () => void }) => {
              <p><EditableText value={footer.copyright} onSave={(val) => updateSection('footer', 'copyright', val)} /></p>
              
              {/* CONNECTION STATUS INDICATOR */}
-             <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-black/5" title={`当前数据源: ${dataSource}`}>
-                {dataSource === 'cloud' && (
-                    <>
-                        <Cloud size={10} className="text-green-600" />
-                        <span className="text-[9px] font-bold text-green-700">CLOUD SYNCED</span>
-                    </>
-                )}
-                {dataSource === 'local' && (
-                    <>
-                        <HardDrive size={10} className="text-orange-500" />
-                        <span className="text-[9px] font-bold text-orange-600">LOCAL (ADMIN)</span>
-                    </>
-                )}
-                {dataSource === 'default' && (
-                    <>
-                        <AlertCircle size={10} className="text-gray-400" />
-                        <span className="text-[9px] font-bold text-gray-500">OFFLINE / NO CONFIG</span>
-                    </>
-                )}
+             <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-black/5" title={`Data Source: ${dataSource}`}>
+                {getStatusIndicator()}
              </div>
           </div>
           
