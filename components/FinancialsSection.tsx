@@ -1,8 +1,6 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { BarChart, Bar, ResponsiveContainer, Cell, XAxis, Tooltip } from 'recharts';
-import { Bot, TrendingUp, DollarSign, Activity, AlertCircle, ChevronDown, ChevronUp, Check, X, PlusCircle, GripVertical, Trash2 } from 'lucide-react';
-import { analyzeProfitability } from '../services/geminiService';
+import { TrendingUp, DollarSign, Activity, AlertCircle, ChevronDown, ChevronUp, Check, X, PlusCircle, GripVertical, Trash2 } from 'lucide-react';
 import { useContent } from '../contexts/ContentContext';
 import { EditableText } from './ui/Editable';
 
@@ -72,8 +70,6 @@ export const FinancialsSection = () => {
   const [dailyCups, setDailyCups] = useState(60);
   const [activeModelId, setActiveModelId] = useState<string>('D'); // Default to ONESIP
   const [chartData, setChartData] = useState<any[]>([]);
-  const [aiAnalysis, setAiAnalysis] = useState("");
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   const daysPerMonth = 30;
 
@@ -144,13 +140,6 @@ export const FinancialsSection = () => {
     });
     setChartData(data);
   }, [dailyCups, models, language, calculatorParams]);
-
-  const handleAiAnalysis = async () => {
-    setIsAnalyzing(true);
-    const result = await analyzeProfitability(dailyCups, language === 'zh' ? "商业中心" : "Commercial Center");
-    setAiAnalysis(result);
-    setIsAnalyzing(false);
-  };
 
   const activeModelData = calculateDetails(activeModelId, dailyCups);
   const activeModelInfo = models.find(m => m.id === activeModelId);
@@ -350,23 +339,6 @@ export const FinancialsSection = () => {
 
             </div>
         )}
-        
-        {/* AI Analysis Button */}
-        <div className="mt-8">
-             <button 
-                onClick={handleAiAnalysis}
-                disabled={isAnalyzing}
-                className="w-full py-4 rounded-2xl bg-gradient-to-r from-brand-green-dark to-[#0A2A1A] border border-white/5 text-sm font-bold text-white transition-all flex items-center justify-center gap-2 hover:brightness-110"
-            >
-                <Bot size={18} className={isAnalyzing ? 'animate-pulse' : ''}/>
-                {isAnalyzing ? financials.aiButtonLoading[language] : (language === 'zh' ? `获取 AI 对【${activeModelInfo?.name.zh}】模式的点评` : `Get AI Analysis for ${activeModelInfo?.name.en}`)}
-            </button>
-            {aiAnalysis && (
-                <div className="mt-4 p-6 bg-[#1C1C1E] border border-white/5 rounded-2xl animate-fade-in text-gray-300 leading-relaxed text-sm">
-                    {aiAnalysis}
-                </div>
-            )}
-        </div>
 
       </div>
     </div>
