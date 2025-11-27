@@ -760,18 +760,30 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
       try {
         let currentConfig: CloudConfig = { enabled: false, binId: '', libraryBinIds: [], apiKey: '' };
 
-        // Hardcoded config from config.ts takes precedence for ease of deployment
-        if (APP_CONFIG.ENABLE_CLOUD_SYNC && APP_CONFIG.CLOUD_BIN_ID && APP_CONFIG.CLOUD_API_KEY) {
+        // --- NEW LOGIC: Prioritize Environment Variables ---
+        // Priority 1: Vercel/Build Environment Variables (prefixed with REACT_APP_)
+        const envApiKey = process.env.REACT_APP_CLOUD_API_KEY;
+        const envBinId = process.env.REACT_APP_CLOUD_BIN_ID;
+
+        // Priority 2: Hardcoded config.ts (for local dev fallback)
+        const configApiKey = APP_CONFIG.CLOUD_API_KEY;
+        const configBinId = APP_CONFIG.CLOUD_BIN_ID;
+        
+        const finalApiKey = envApiKey || configApiKey;
+        const finalBinId = envBinId || configBinId;
+
+        if (APP_CONFIG.ENABLE_CLOUD_SYNC && finalBinId && finalApiKey) {
              currentConfig.enabled = true;
-             currentConfig.apiKey = APP_CONFIG.CLOUD_API_KEY;
-             currentConfig.binId = APP_CONFIG.CLOUD_BIN_ID; 
-        } 
+             currentConfig.apiKey = finalApiKey;
+             currentConfig.binId = finalBinId; 
+        }
+        // --- END NEW LOGIC ---
 
         const savedCloudConfig = localStorage.getItem('onesip_cloud_config');
         if (savedCloudConfig) {
             try {
                 const parsed = JSON.parse(savedCloudConfig);
-                // Merge, allowing localStorage to provide libraryBinIds
+                // Merge, allowing localStorage to provide libraryBinIds, which are not in env vars
                 currentConfig = { ...currentConfig, ...parsed };
             } catch (e) {}
         }

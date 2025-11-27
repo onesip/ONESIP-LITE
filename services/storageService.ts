@@ -5,8 +5,9 @@ const BASE_URL = 'https://api.jsonbin.io/v3/b';
 const NUM_LIBRARY_BINS = 10;
 
 const getCredentials = (binIdArg?: string, apiKeyArg?: string, libraryBinIdsArg?: string[]) => {
-    const binId = binIdArg || APP_CONFIG.CLOUD_BIN_ID || '';
-    const apiKey = apiKeyArg || APP_CONFIG.CLOUD_API_KEY || '';
+    // Priority: Arguments > Environment Variables > config.ts fallback
+    const binId = binIdArg || process.env.REACT_APP_CLOUD_BIN_ID || APP_CONFIG.CLOUD_BIN_ID || '';
+    const apiKey = apiKeyArg || process.env.REACT_APP_CLOUD_API_KEY || APP_CONFIG.CLOUD_API_KEY || '';
     const libraryBinIds = libraryBinIdsArg || [];
     return { binId: binId.trim(), apiKey: apiKey.trim(), libraryBinIds };
 };
@@ -131,29 +132,34 @@ export const saveCloudContent = async (binIdArg: string, libraryBinIdsArg: strin
 };
 
 export const createCloudBins = async (apiKeyArg: string, mainContent: Omit<SiteContent, 'library'>): Promise<{ binId: string; libraryBinIds: string[] }> => {
-    const apiKey = (apiKeyArg || APP_CONFIG.CLOUD_API_KEY).trim();
-    if (!apiKey) throw new Error("Missing API Key");
+    const apiKey = apiKeyArg || process.env.REACT_APP_CLOUD_API_KEY || APP_CONFIG.CLOUD_API_KEY;
+    const mainBinId = process.env.REACT_APP_CLOUD_BIN_ID || APP_CONFIG.CLOUD_BIN_ID;
+
+    if (!apiKey) throw new Error("Missing API Key. Check Vercel environment variables (REACT_APP_CLOUD_API_KEY) or config.ts.");
+    if (!mainBinId) throw new Error("Missing Main Bin ID. Check Vercel environment variables (REACT_APP_CLOUD_BIN_ID) or config.ts.");
 
     try {
-        // Use the hardcoded main bin if it exists, otherwise create a new one.
-        const mainBinId = APP_CONFIG.CLOUD_BIN_ID;
-        if (!mainBinId) {
-            throw new Error("Critical: CLOUD_BIN_ID is not defined in config.ts. Cannot create library bins without it.");
-        }
-
         const libraryBinPromises = Array.from({ length: NUM_LIBRARY_BINS }, (_, i) =>
             fetch(BASE_URL, {
                 method: 'POST',
                 headers: { 'X-Master-Key': apiKey, 'Content-Type': 'application/json', 'X-Bin-Name': `ONESIP_MEDIA_LIBRARY_${i+1}`, 'X-Bin-Private': 'true' },
-                body: JSON.stringify({ library: [] }) // Create empty library bins
+                body: JSON.stringify({ library: [] })
             })
         );
         
         const libraryResults = await Promise.all(libraryBinPromises);
 
         if (libraryResults.some(res => !res.ok)) {
-            const libraryErrors = await Promise.all(libraryResults.map(async (res, i) => !res.ok ? `Lib #${i+1}: ${await res.text()}`: ""));
-            throw new Error(`Library bin creation failed: \n${libraryErrors.filter(Boolean).join(', ')}`);
+            const libraryErrors = await Promise.all(libraryResults.map(async (res, i) => {
+                if (res.ok) return "";
+                let errorText = await res.text();
+                try {
+                    const errorJson = JSON.parse(errorText);
+                    errorText = errorJson.message || errorText;
+                } catch (e) { /* Not a JSON error */ }
+                return `  - Bin #${i + 1} Creation Failed (${res.status}): ${errorText}`;
+            }));
+            throw new Error(`One or more media library bins could not be created:\n${libraryErrors.filter(Boolean).join('\n')}`);
         }
 
         const libraryJsons = await Promise.all(libraryResults.map(res => res.json()));
@@ -165,6 +171,6 @@ export const createCloudBins = async (apiKeyArg: string, mainContent: Omit<SiteC
 
     } catch (error) {
         console.error("Failed to create cloud bins:", error);
-        throw error;
+        throw error; // Re-throw the already formatted error
     }
 };

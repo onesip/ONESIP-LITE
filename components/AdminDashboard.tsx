@@ -266,12 +266,18 @@ const DashboardSettings = () => {
     const [isTesting, setIsTesting] = useState(false);
     const [isCreating, setIsCreating] = useState(false);
 
-    const localApiKey = cloudConfig.apiKey || APP_CONFIG.CLOUD_API_KEY;
-    const localBinId = cloudConfig.binId || APP_CONFIG.CLOUD_BIN_ID;
+    // Read directly from the config object, which is now populated from env vars first.
+    const localApiKey = cloudConfig.apiKey;
+    const localBinId = cloudConfig.binId;
+
+    // Determine the source for UI feedback
+    const apiKeySource = process.env.REACT_APP_CLOUD_API_KEY ? 'Vercel Env' : 'config.ts';
+    const binIdSource = process.env.REACT_APP_CLOUD_BIN_ID ? 'Vercel Env' : 'config.ts';
+
 
     const handleTestConnection = async () => {
         if (!localBinId || localLibraryBinIds.some(id => !id) || !localApiKey) {
-            alert("云端配置不完整。请确保 config.ts 已配置，或尝试重新'一键生成'。");
+            alert("云端配置不完整。请确保 Vercel 环境变量或 config.ts 已配置，并已'一键生成媒体库'。");
             return;
         }
         setIsTesting(true);
@@ -287,10 +293,10 @@ const DashboardSettings = () => {
 
     const handleAutoCreate = async () => {
         if (!localApiKey) {
-            alert("错误：在 config.ts 中未找到 API Key。");
+            alert("错误：未找到 API Key。请在 Vercel 环境变量 (REACT_APP_CLOUD_API_KEY) 或 config.ts 中配置。");
             return;
         }
-        if (!confirm("此操作将创建10个新的媒体库 Bin 并将其关联到您的主账户。确定要继续吗？")) {
+        if (!confirm("此操作将使用您的 API Key 创建10个新的媒体库 Bin。确定要继续吗？")) {
             return;
         }
         setIsCreating(true);
@@ -303,14 +309,14 @@ const DashboardSettings = () => {
             
             updateCloudConfig({
                 enabled: true,
-                binId: localBinId, // This is hardcoded, so we just re-affirm it
+                binId: localBinId,
                 libraryBinIds: libraryBinIds,
                 apiKey: localApiKey
             });
             
             alert(`🎉 成功！\n\n已自动创建10个媒体库仓库并保存配置。\n\n请刷新页面以使新配置生效。`);
-        } catch (e) {
-            alert("❌ 自动创建失败。\n请检查您的 API Key 是否在 config.ts 中正确配置。");
+        } catch (e: any) {
+            alert(`❌ 自动创建失败。\n\n错误详情:\n${e.message}\n\n请检查:\n1. 您的 API Key 是否正确 (无论是在 Vercel 环境变量还是 config.ts 中)。\n2. 您的 API Key 是否有创建 Bins 的权限。`);
             console.error(e);
         } finally {
             setIsCreating(false);
@@ -360,16 +366,22 @@ const DashboardSettings = () => {
                      <div className="flex-1">
                          <h3 className="text-2xl font-bold text-white mb-2">云端数据同步 (JSONBin)</h3>
                          <p className="text-gray-400 leading-relaxed mb-6">
-                             为了解决免费版100kb的容量限制，系统采用主数据 + 10个媒体库的分离存储方案。您的主配置已在 `config.ts` 中写死，这里只需生成并管理媒体库即可。
+                             系统会优先使用 Vercel 环境变量，若未设置，则回退到 `config.ts`。这里只需一键生成媒体库即可完成配置。
                          </p>
                          
                          <div className="bg-[#111211] p-6 rounded-xl border border-white/5 space-y-6">
                              
                              <div>
-                                 <label className="text-xs text-gray-500 uppercase tracking-wider font-bold mb-2 block">主账户配置 (已写死)</label>
+                                 <label className="text-xs text-gray-500 uppercase tracking-wider font-bold mb-2 block">主账户配置</label>
                                  <div className="space-y-2">
-                                     <input value={`API Key: ${localApiKey.substring(0, 15)}...`} readOnly className="w-full bg-[#1C1C1E] border border-white/10 rounded-lg p-2 text-gray-500 font-mono text-xs cursor-not-allowed"/>
-                                     <input value={`主Bin ID: ${localBinId}`} readOnly className="w-full bg-[#1C1C1E] border border-white/10 rounded-lg p-2 text-gray-500 font-mono text-xs cursor-not-allowed"/>
+                                     <div className="flex items-center gap-2">
+                                        <input value={`API Key: ${localApiKey ? localApiKey.substring(0, 15) + '...' : '未找到'}`} readOnly className="flex-1 bg-[#1C1C1E] border border-white/10 rounded-lg p-2 text-gray-500 font-mono text-xs cursor-not-allowed"/>
+                                        <span className={`text-[10px] font-bold px-2 py-1 rounded ${apiKeySource === 'Vercel Env' ? 'bg-blue-500/20 text-blue-300' : 'bg-gray-500/20 text-gray-400'}`}>{apiKeySource}</span>
+                                     </div>
+                                      <div className="flex items-center gap-2">
+                                        <input value={`主Bin ID: ${localBinId || '未找到'}`} readOnly className="flex-1 bg-[#1C1C1E] border border-white/10 rounded-lg p-2 text-gray-500 font-mono text-xs cursor-not-allowed"/>
+                                        <span className={`text-[10px] font-bold px-2 py-1 rounded ${binIdSource === 'Vercel Env' ? 'bg-blue-500/20 text-blue-300' : 'bg-gray-500/20 text-gray-400'}`}>{binIdSource}</span>
+                                     </div>
                                  </div>
                              </div>
 
@@ -394,7 +406,7 @@ const DashboardSettings = () => {
                                         onClick={handleAutoCreate}
                                         disabled={isCreating || !localApiKey}
                                         className={`w-full mt-4 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:bg-gray-700 text-white px-5 py-2 rounded-lg text-xs font-bold whitespace-nowrap flex items-center justify-center gap-2 transition-all shadow-lg shadow-indigo-500/20 ${!isCloudConfigured ? 'animate-pulse' : ''}`}
-                                        title="使用已配置的 API Key 自动生成 10 个媒体库 Bin"
+                                        title="使用检测到的 API Key 自动生成 10 个媒体库 Bin"
                                      >
                                          {isCreating ? <Loader2 size={14} className="animate-spin"/> : <Sparkles size={14} />}
                                          {isCreating ? "创建中..." : "一键生成媒体库 (10个)"}
@@ -439,19 +451,16 @@ const DashboardSettings = () => {
                      </div>
                      <div className="flex-1">
                          <h3 className="text-2xl font-bold text-white mb-2">如何发布上线？</h3>
-                         <div className="bg-green-500/10 border border-green-500/20 rounded-xl p-4 mb-6">
-                            <p className="text-green-400 text-sm font-bold flex items-center gap-2">
-                                <CheckCircle2 size={16}/> 您的发布流程已简化！
+                         <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4 mb-6">
+                            <p className="text-blue-300 text-sm font-bold flex items-center gap-2">
+                                <CheckCircle2 size={16}/> 推荐使用 Vercel 环境变量
                             </p>
                             <p className="text-gray-400 text-xs mt-1">
-                                因为您已经配置了 <code>config.ts</code> 文件，您不需要在 Vercel 后台手动设置任何环境变量。
+                                将您的 API Key 和主 Bin ID 设置为 Vercel 项目的环境变量，变量名分别为 `REACT_APP_CLOUD_API_KEY` 和 `REACT_APP_CLOUD_BIN_ID`。
                             </p>
                          </div>
                          
                          <p className="text-gray-400 leading-relaxed mb-6 text-sm">
-                             1. 将代码推送到 GitHub。<br/>
-                             2. 在 Vercel 中导入项目。<br/>
-                             3. <strong>直接点击 Deploy</strong> 即可！<br/><br/>
                              发布成功后，您的网站就拥有了“云端记忆”。您在后台做的任何修改，都会即时同步给所有访问者，**无需再次 Deploy**。
                          </p>
                      </div>
