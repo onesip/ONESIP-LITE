@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { SiteContent, MenuItem, HeroContent, SectionItem, FinancialModelItem, ProcessPhase, CloudConfig, ShowcaseItem, FAQItem, Lead, Language, LocalizedText, CalculatorParams } from '../types';
 import { fetchCloudContent, saveCloudContent } from '../services/storageService';
 import { translateText } from '../services/geminiService';
@@ -891,16 +891,23 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
   };
 
   const updateMenuItem = (id: number, field: keyof MenuItem, value: any) => {
-    setContent(prev => ({ 
-        ...prev, 
-        menu: prev.menu.map(item => {
+    setContent(prev => { 
+        const newMenu = prev.menu.map(item => {
             if (item.id !== id) return item;
-            if (typeof item[field] === 'object' && 'zh' in (item[field] as any)) {
-                return { ...item, [field]: { ...(item[field] as any), [language]: value } };
+            
+            // Handle localized text fields like name, tag, desc
+            if (typeof item[field] === 'object' && item[field] !== null && 'zh' in (item[field] as any)) {
+                return { 
+                    ...item, 
+                    [field]: { ...(item[field] as any), [language]: value } 
+                };
             }
+            
+            // Handle simple string fields like image, price, eng
             return { ...item, [field]: value };
-        }) 
-    }));
+        });
+        return { ...prev, menu: newMenu };
+    });
 
     const item = content.menu.find(m => m.id === id);
     if (item && typeof item[field] === 'object' && 'zh' in (item[field] as any)) {
@@ -1070,55 +1077,48 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
       }
   };
 
-  const saveChanges = useCallback(async () => {
-    if (isLoading) return; // Do not save while still loading initial data
+  // ROBUST SAVE FUNCTION
+  const saveChanges = async () => {
+    if (isLoading) return;
     
     setIsSyncing(true);
-    // Always save to local storage first as a reliable backup
-    localStorage.setItem('onesip_content', JSON.stringify(content));
     
-    let targetBin = cloudConfig.binId;
-    let targetKey = cloudConfig.apiKey;
-
-    // Use hardcoded config if available
-    if (APP_CONFIG.ENABLE_CLOUD_SYNC && APP_CONFIG.CLOUD_BIN_ID) {
-        targetBin = APP_CONFIG.CLOUD_BIN_ID;
-        targetKey = APP_CONFIG.CLOUD_API_KEY;
-    }
+    // Create a deep copy of content to ensure we're saving the latest state
+    const contentToSave = JSON.parse(JSON.stringify(content));
+    
+    localStorage.setItem('onesip_content', JSON.stringify(contentToSave));
+    
+    let targetBin = cloudConfig.binId || APP_CONFIG.CLOUD_BIN_ID;
+    let targetKey = cloudConfig.apiKey || APP_CONFIG.CLOUD_API_KEY;
 
     if (targetBin && targetKey) {
         try {
-            await saveCloudContent(targetBin, targetKey, content);
+            await saveCloudContent(targetBin, targetKey, contentToSave);
         } catch (e) {
             console.error("Cloud Sync Failed:", e);
-            // Optional: Show an error toast to the user
         }
     }
     
-    // Use a timeout to make the "SYNCING" indicator visible for a minimum duration
     setTimeout(() => setIsSyncing(false), 500);
-  }, [content, cloudConfig, isLoading]);
+  };
 
   // --- AUTO-SAVE EFFECT ---
   useEffect(() => {
-    // Skip the very first render cycle to avoid saving default/initial content
     if (isInitialMount.current) {
         isInitialMount.current = false;
         return;
     }
     
-    // Debounce the save function to prevent excessive calls
     const handler = setTimeout(() => {
-        if (isAdmin) { // Only auto-save when in admin mode
+        if (isAdmin) {
             saveChanges();
         }
-    }, 1500); // 1.5 second delay after last change
+    }, 1500);
 
-    // Cleanup function to cancel the timeout if content changes again
     return () => {
         clearTimeout(handler);
     };
-  }, [content, isAdmin, saveChanges]);
+  }, [content, isAdmin]);
 
 
   const submitLead = async (leadData: Omit<Lead, 'id' | 'timestamp' | 'status'>) => {
@@ -1129,11 +1129,9 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
         status: 'new'
     };
     
-    // Use a function for setContent to ensure we have the latest state
     setContent(prev => {
         const newContent = { ...prev, leads: [newLead, ...(prev.leads || [])] };
         
-        // This save is immediate because it's a user action, not an edit
         localStorage.setItem('onesip_content', JSON.stringify(newContent));
         
         let targetBin = cloudConfig.binId || APP_CONFIG.CLOUD_BIN_ID;
