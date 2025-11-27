@@ -2,7 +2,7 @@
 import React, { useState, useRef } from 'react';
 import { useContent } from '../contexts/ContentContext';
 import { useChat } from '../contexts/ChatContext';
-import { fetchCloudContent, createCloudBin } from '../services/storageService'; 
+import { fetchCloudContent, createCloudBins } from '../services/storageService'; 
 import { 
   LayoutDashboard, 
   MessageSquare, 
@@ -244,22 +244,23 @@ const DashboardLeads = () => {
 const DashboardSettings = () => {
     const { cloudConfig, updateCloudConfig, content } = useContent();
     const [localBinId, setLocalBinId] = useState(cloudConfig.binId);
+    const [localLibraryBinId, setLocalLibraryBinId] = useState(cloudConfig.libraryBinId);
     const [localApiKey, setLocalApiKey] = useState(cloudConfig.apiKey);
     const [isEnabled, setIsEnabled] = useState(cloudConfig.enabled);
     const [isTesting, setIsTesting] = useState(false);
     const [isCreating, setIsCreating] = useState(false);
 
     const handleTestConnection = async () => {
-        if (!localBinId || !localApiKey) {
-            alert("请先填写 Bin ID 和 API Key");
+        if (!localBinId || !localLibraryBinId || !localApiKey) {
+            alert("请先填写所有3个字段: API Key, Main Bin ID, 和 Library Bin ID");
             return;
         }
         setIsTesting(true);
         try {
-            await fetchCloudContent(localBinId, localApiKey);
+            await fetchCloudContent(localBinId, localApiKey, localLibraryBinId);
             alert("✅ 连接成功！云端配置有效，可以使用。");
         } catch (e) {
-            alert("❌ 连接失败。请检查您的 Bin ID 和 API Key 是否正确。");
+            alert("❌ 连接失败。请检查您的所有 ID 和 API Key 是否正确。");
         } finally {
             setIsTesting(false);
         }
@@ -272,18 +273,19 @@ const DashboardSettings = () => {
         }
         setIsCreating(true);
         try {
-            const newBinId = await createCloudBin(localApiKey, content);
-            setLocalBinId(newBinId);
+            const { binId, libraryBinId } = await createCloudBins(localApiKey, content);
+            setLocalBinId(binId);
+            setLocalLibraryBinId(libraryBinId);
             setIsEnabled(true);
             
-            // Save immediately
             updateCloudConfig({
                 enabled: true,
-                binId: newBinId,
+                binId: binId,
+                libraryBinId: libraryBinId,
                 apiKey: localApiKey
             });
             
-            alert(`🎉 成功！\n\n已自动创建仓库 ID: ${newBinId}\n配置已自动保存并开启。\n\n您现在可以去前台编辑内容了，所有修改点击保存后都会同步到云端。`);
+            alert(`🎉 成功！\n\n已自动创建主仓库和媒体库仓库。\n配置已自动保存并开启。\n\n您现在可以去前台编辑内容了，所有修改点击保存后都会同步到云端。`);
         } catch (e) {
             alert("❌ 自动创建失败。\n请检查您的 API Key 是否正确（不要有多余空格）。\n请确保复制的是 'Master Key' 而不是 'Access Key'。");
             console.error(e);
@@ -296,14 +298,10 @@ const DashboardSettings = () => {
         updateCloudConfig({
             enabled: isEnabled,
             binId: localBinId,
+            libraryBinId: localLibraryBinId,
             apiKey: localApiKey
         });
         alert("设置已保存！请刷新页面以加载云端数据。");
-    };
-    
-    const handleCopy = (text: string) => {
-        navigator.clipboard.writeText(text);
-        alert("已复制到剪贴板");
     };
 
     return (
@@ -316,12 +314,11 @@ const DashboardSettings = () => {
                      <div className="flex-1">
                          <h3 className="text-2xl font-bold text-white mb-2">云端数据同步 (JSONBin)</h3>
                          <p className="text-gray-400 leading-relaxed mb-6">
-                             配置后，您在后台的修改将自动推送到云端。
+                             为了解决免费版100kb的容量限制，系统采用主数据+媒体库分离存储。请确保所有字段都已配置。
                          </p>
                          
                          <div className="bg-[#111211] p-6 rounded-xl border border-white/5 space-y-6">
                              
-                             {/* API KEY INPUT */}
                              <div>
                                  <label className="text-xs text-gray-500 uppercase tracking-wider font-bold mb-2 block flex justify-between items-center">
                                      <span>1. 填入 X-Master-Key (API 密钥)</span>
@@ -344,26 +341,35 @@ const DashboardSettings = () => {
                                  <p className="text-[10px] text-gray-600 mt-1">请确保复制的是黄色的 "Master Key"。</p>
                              </div>
 
-                             {/* BIN ID INPUT WITH AUTO CREATE */}
                              <div>
-                                 <label className="text-xs text-gray-500 uppercase tracking-wider font-bold mb-2 block">2. 生成/填入 Bin ID</label>
-                                 <div className="flex flex-col sm:flex-row gap-2">
+                                 <label className="text-xs text-gray-500 uppercase tracking-wider font-bold mb-2 block">2. 生成/填入 Bin IDs</label>
+                                 <div className="flex items-center gap-2 mb-2">
+                                     <span className="w-24 shrink-0 text-gray-400 text-xs">主内容 Bin ID:</span>
                                      <input 
                                         value={localBinId}
                                         onChange={(e) => setLocalBinId(e.target.value)}
-                                        placeholder="e.g. 65f8a..."
-                                        className="flex-1 bg-[#1C1C1E] border border-white/10 rounded-lg p-3 text-white focus:border-brand-green-medium outline-none transition-colors font-mono text-sm"
+                                        placeholder="主内容 Bin ID..."
+                                        className="flex-1 bg-[#1C1C1E] border border-white/10 rounded-lg p-2 text-white focus:border-brand-green-medium outline-none transition-colors font-mono text-sm"
                                      />
-                                     <button
+                                 </div>
+                                 <div className="flex items-center gap-2">
+                                     <span className="w-24 shrink-0 text-gray-400 text-xs">媒体库 Bin ID:</span>
+                                     <input 
+                                        value={localLibraryBinId}
+                                        onChange={(e) => setLocalLibraryBinId(e.target.value)}
+                                        placeholder="媒体库 Bin ID..."
+                                        className="flex-1 bg-[#1C1C1E] border border-white/10 rounded-lg p-2 text-white focus:border-brand-green-medium outline-none transition-colors font-mono text-sm"
+                                     />
+                                 </div>
+                                  <button
                                         onClick={handleAutoCreate}
                                         disabled={isCreating || !localApiKey}
-                                        className="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:bg-gray-700 text-white px-5 py-2 rounded-lg text-xs font-bold whitespace-nowrap flex items-center justify-center gap-2 transition-all shadow-lg shadow-indigo-500/20"
-                                        title="只需填好 Key，点击此按钮帮您自动生成 Bin ID"
+                                        className="w-full mt-4 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:bg-gray-700 text-white px-5 py-2 rounded-lg text-xs font-bold whitespace-nowrap flex items-center justify-center gap-2 transition-all shadow-lg shadow-indigo-500/20"
+                                        title="只需填好 Key，点击此按钮帮您自动生成两个 Bin ID"
                                      >
-                                         {isCreating ? <span className="animate-spin">⏳</span> : <Sparkles size={14} />}
-                                         {isCreating ? "创建中..." : "一键自动生成"}
-                                     </button>
-                                 </div>
+                                         {isCreating ? <Loader2 size={14} className="animate-spin"/> : <Sparkles size={14} />}
+                                         {isCreating ? "创建中..." : "一键自动生成全部"}
+                                  </button>
                              </div>
                              
                              <div className="flex items-center justify-between pt-4 border-t border-white/5">
@@ -389,7 +395,7 @@ const DashboardSettings = () => {
                                 disabled={isTesting}
                                 className="px-6 py-3 bg-white/5 hover:bg-white/10 text-white rounded-xl font-bold transition-colors flex items-center gap-2 border border-white/10"
                              >
-                                 {isTesting ? <span className="animate-spin">⏳</span> : <Wifi size={18} />} 
+                                 {isTesting ? <Loader2 size={18} className="animate-spin"/> : <Wifi size={18} />} 
                                  {isTesting ? "测试中..." : "测试连接"}
                              </button>
                          </div>
@@ -397,7 +403,6 @@ const DashboardSettings = () => {
                  </div>
              </div>
              
-             {/* --- DEPLOYMENT GUIDE (UPDATED FOR CONFIG.TS) --- */}
              <div className="bg-[#1C1C1E] border border-white/5 rounded-3xl p-8">
                  <div className="flex items-start gap-6">
                      <div className="w-16 h-16 rounded-2xl bg-pink-500/20 text-pink-400 flex items-center justify-center shrink-0">

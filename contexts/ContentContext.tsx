@@ -727,7 +727,7 @@ const ContentContext = createContext<ContentContextType | undefined>(undefined);
 
 export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [content, setContent] = useState<SiteContent>(defaultContent);
-  const [cloudConfig, setCloudConfig] = useState<CloudConfig>({ enabled: false, binId: '', apiKey: '' });
+  const [cloudConfig, setCloudConfig] = useState<CloudConfig>({ enabled: false, binId: '', libraryBinId: '', apiKey: '' });
   const [isAdmin, setIsAdmin] = useState(false);
   const [isDashboardOpen, setIsDashboardOpen] = useState(false);
   const [isLeadFormOpen, setIsLeadFormOpen] = useState(false);
@@ -759,37 +759,34 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
     const init = async () => {
       setIsLoading(true);
       try {
-        let currentConfig: CloudConfig = { enabled: false, binId: '', apiKey: '' };
+        let currentConfig: CloudConfig = { enabled: false, binId: '', libraryBinId: '', apiKey: '' };
 
+        // Hardcoded config from config.ts takes precedence for ease of deployment
         if (APP_CONFIG.ENABLE_CLOUD_SYNC && APP_CONFIG.CLOUD_BIN_ID && APP_CONFIG.CLOUD_API_KEY) {
-             currentConfig = {
-                enabled: true,
-                binId: APP_CONFIG.CLOUD_BIN_ID,
-                apiKey: APP_CONFIG.CLOUD_API_KEY
-             };
+             currentConfig.enabled = true;
+             currentConfig.apiKey = APP_CONFIG.CLOUD_API_KEY;
+             // NOTE: libraryBinId is not hardcoded, must come from localStorage
+             currentConfig.binId = APP_CONFIG.CLOUD_BIN_ID; 
         } 
-        else {
-             const savedCloudConfig = localStorage.getItem('onesip_cloud_config');
-             if (savedCloudConfig) {
-                 try {
-                     const parsed = JSON.parse(savedCloudConfig);
-                     if (parsed.enabled) currentConfig = parsed;
-                 } catch (e) {}
-             }
+
+        const savedCloudConfig = localStorage.getItem('onesip_cloud_config');
+        if (savedCloudConfig) {
+            try {
+                const parsed = JSON.parse(savedCloudConfig);
+                // Merge, allowing localStorage to provide bin IDs if not hardcoded
+                currentConfig = { ...currentConfig, ...parsed };
+            } catch (e) {}
         }
 
         setCloudConfig(currentConfig);
 
-        if (currentConfig.enabled && currentConfig.binId && currentConfig.apiKey) {
+        if (currentConfig.enabled && currentConfig.binId && currentConfig.libraryBinId && currentConfig.apiKey) {
             try {
-                console.log("Fetching from Cloud...", currentConfig.binId);
-                const cloudData = await fetchCloudContent(currentConfig.binId, currentConfig.apiKey);
+                console.log("Fetching from Cloud Bins...", currentConfig.binId, currentConfig.libraryBinId);
+                const cloudData = await fetchCloudContent(currentConfig.binId, currentConfig.apiKey, currentConfig.libraryBinId);
                 if (cloudData) {
-                    const migratedData = migrateContent(cloudData); // Apply Migration
-                    setContent(prev => ({
-                        ...defaultContent,
-                        ...migratedData,
-                    }));
+                    const migratedData = migrateContent(cloudData);
+                    setContent(prev => ({ ...defaultContent, ...migratedData }));
                     setDataSource('cloud');
                     setIsLoading(false);
                     clearTimeout(timeoutId);
@@ -804,11 +801,8 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
         if (savedContent) {
             try {
                 const parsed = JSON.parse(savedContent);
-                const migratedData = migrateContent(parsed); // Apply Migration
-                setContent(prev => ({
-                    ...defaultContent,
-                    ...migratedData,
-                }));
+                const migratedData = migrateContent(parsed);
+                setContent(prev => ({ ...defaultContent, ...migratedData }));
                 setDataSource('local');
             } catch (e) {}
         } else {
@@ -1141,38 +1135,36 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
       }
   };
 
-  // ✅ BUG FIX: REMOVED AUTO-SAVE AND ADDED ROBUST ERROR HANDLING
   const saveChanges = useCallback(async () => {
     if (isLoading) return;
     setIsSyncing(true);
     
     try {
-        // This is the critical step. If `content` is corrupted (e.g., contains `undefined`), this will throw an error.
         const contentString = JSON.stringify(content);
         const contentToSave = JSON.parse(contentString);
         
         localStorage.setItem('onesip_content', contentString);
         
-        let targetBin = cloudConfig.binId || APP_CONFIG.CLOUD_BIN_ID;
-        let targetKey = cloudConfig.apiKey || APP_CONFIG.CLOUD_API_KEY;
+        const { binId, libraryBinId, apiKey } = cloudConfig;
 
-        if (targetBin && targetKey) {
-            await saveCloudContent(targetBin, targetKey, contentToSave);
+        if (binId && libraryBinId && apiKey) {
+            await saveCloudContent(binId, libraryBinId, apiKey, contentToSave);
+        } else {
+            console.warn("Cloud save skipped: Missing binId, libraryBinId, or apiKey.");
         }
     } catch (e: any) {
-        console.error("CRITICAL: Failed to serialize and save content!", e);
-        // This alert is crucial for user feedback on silent failures.
-        alert(
-          "保存失败！\n\n出现了一个严重错误，导致内容无法被保存。这可能是由于：\n1. 数据结构问题（例如编辑产品后）。\n2. 网络连接中断。\n3. 内容过大（例如上传了太多图片）。\n\n请尝试刷新页面。如果问题仍然存在，请联系开发人员。\n\n详细错误: " + e.message
-        );
+        console.error("CRITICAL: Failed to save content!", e);
+        let alertMessage = "保存失败！\n\n出现了一个严重错误，导致内容无法被保存。这可能是由于：\n1. 数据结构问题（例如编辑产品后）。\n2. 网络连接中断。\n3. 内容过大（例如上传了太多图片）。\n\n请尝试刷新页面。如果问题仍然存在，请联系开发人员。\n\n详细错误: " + e.message;
+        
+        if (e.message && (e.message.includes('100kb') || e.message.includes('413'))) {
+            alertMessage += "\n\n解决方案：您的免费云存储空间（100kb）已满。请升级您的 jsonbin.io 账户，或减少媒体库中的图片数量。";
+        }
+
+        alert(alertMessage);
     } finally {
         setTimeout(() => setIsSyncing(false), 500);
     }
   }, [content, isLoading, cloudConfig]);
-
-  // ✅ BUG FIX: REMOVED aotu-save useEffect
-  // The auto-save functionality has been removed to prevent race conditions and silent failures.
-  // All saves are now triggered manually by the user.
 
   const submitLead = async (leadData: Omit<Lead, 'id' | 'timestamp' | 'status'>) => {
      const newLead: Lead = {
@@ -1182,29 +1174,27 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
         status: 'new'
     };
     
-    setContent(prev => {
-        const newContent = { ...prev, leads: [newLead, ...(prev.leads || [])] };
-        
-        // This save is separate and should be reliable
-        try {
-            const contentString = JSON.stringify(newContent);
-            localStorage.setItem('onesip_content', contentString);
-        
-            let targetBin = cloudConfig.binId || APP_CONFIG.CLOUD_BIN_ID;
-            let targetKey = cloudConfig.apiKey || APP_CONFIG.CLOUD_API_KEY;
+    // Create new content state immediately
+    const newContent = { ...content, leads: [newLead, ...(content.leads || [])] };
+    setContent(newContent); // Update UI optimistically
+    
+    // Attempt to save this new state in the background
+    try {
+        const contentString = JSON.stringify(newContent);
+        localStorage.setItem('onesip_content', contentString);
+    
+        const { binId, libraryBinId, apiKey } = cloudConfig;
 
-            if (targetBin && targetKey) {
-                setIsSyncing(true);
-                saveCloudContent(targetBin, targetKey, JSON.parse(contentString))
-                    .catch(e => console.error("Cloud sync lead failed", e))
-                    .finally(() => setIsSyncing(false));
-            }
-        } catch (e) {
-            console.error("Failed to save lead", e);
+        if (binId && libraryBinId && apiKey) {
+            setIsSyncing(true);
+            await saveCloudContent(binId, libraryBinId, apiKey, newContent);
         }
-
-        return newContent;
-    });
+    } catch (e) {
+        console.error("Cloud sync on lead submission failed", e);
+        // Optionally alert user that submission was local only
+    } finally {
+        setIsSyncing(false);
+    }
   };
 
   const resetContent = () => {

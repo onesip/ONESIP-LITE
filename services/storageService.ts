@@ -5,132 +5,157 @@ import { APP_CONFIG } from '../config';
 // Using JSONBin.io V3 API
 const BASE_URL = 'https://api.jsonbin.io/v3/b';
 
-// Helper to determine credentials: Priority = Args -> Config File -> Env Vars
-const getCredentials = (passedBinId?: string, passedApiKey?: string) => {
-  // 1. Explicitly passed arguments (from Admin testing)
-  if (passedBinId && passedApiKey) {
-      return { binId: passedBinId.trim(), apiKey: passedApiKey.trim() };
-  }
+const getCredentials = (binIdArg?: string, apiKeyArg?: string, libraryBinIdArg?: string) => {
+    let binId = binIdArg || APP_CONFIG.CLOUD_BIN_ID || '';
+    let apiKey = apiKeyArg || APP_CONFIG.CLOUD_API_KEY || '';
+    // This one is special, as it's not in the hardcoded config for simplicity
+    let libraryBinId = libraryBinIdArg || '';
 
-  // 2. Hardcoded Config (The "Firebase-like" seamless experience)
-  if (APP_CONFIG.ENABLE_CLOUD_SYNC && APP_CONFIG.CLOUD_BIN_ID && APP_CONFIG.CLOUD_API_KEY) {
-      return { 
-          binId: APP_CONFIG.CLOUD_BIN_ID.trim(), 
-          apiKey: APP_CONFIG.CLOUD_API_KEY.trim() 
-      };
-  }
-
-  // 3. Environment Variables (Vercel Deployment)
-  const envBinId = typeof process !== 'undefined' && process.env?.REACT_APP_CLOUD_BIN_ID;
-  const envApiKey = typeof process !== 'undefined' && process.env?.REACT_APP_CLOUD_API_KEY;
-
-  if (envBinId && envApiKey) {
-      return { binId: envBinId.trim(), apiKey: envApiKey.trim() };
-  }
-
-  return { binId: '', apiKey: '' };
+    return { binId: binId.trim(), apiKey: apiKey.trim(), libraryBinId: libraryBinId.trim() };
 };
 
-export const fetchCloudContent = async (binIdArg?: string, apiKeyArg?: string): Promise<SiteContent | null> => {
-  const { binId, apiKey } = getCredentials(binIdArg, apiKeyArg);
 
-  if (!binId || !apiKey) {
-      console.warn("Skipping cloud fetch: Missing credentials.");
+export const fetchCloudContent = async (binIdArg?: string, apiKeyArg?: string, libraryBinIdArg?: string): Promise<SiteContent | null> => {
+  const { binId, apiKey, libraryBinId } = getCredentials(binIdArg, apiKeyArg, libraryBinIdArg);
+
+  if (!binId || !apiKey || !libraryBinId) {
+      console.warn("Skipping cloud fetch: Missing one or more credentials (binId, libraryBinId, apiKey).");
       return null;
   }
 
   try {
-    // CRITICAL: Add timestamp query param (?t=...) to bypass browser cache
     const timestamp = new Date().getTime();
-    const response = await fetch(`${BASE_URL}/${binId}/latest?t=${timestamp}`, {
+    const mainPromise = fetch(`${BASE_URL}/${binId}/latest?t=${timestamp}`, {
       method: 'GET',
-      headers: {
-        'X-Master-Key': apiKey,
-        'Content-Type': 'application/json'
-      }
+      headers: { 'X-Master-Key': apiKey, 'Content-Type': 'application/json' },
+    });
+    const libraryPromise = fetch(`${BASE_URL}/${libraryBinId}/latest?t=${timestamp}`, {
+        method: 'GET',
+        headers: { 'X-Master-Key': apiKey, 'Content-Type': 'application/json' },
     });
 
-    if (!response.ok) {
-      console.error(`Cloud fetch error: ${response.status}`);
-      return null;
+    const [mainResponse, libraryResponse] = await Promise.all([mainPromise, libraryPromise]);
+
+    if (!mainResponse.ok) {
+      console.error(`Main content cloud fetch error: ${mainResponse.status}`);
+      return null; // Main content is critical
     }
 
-    const json = await response.json();
-    return json.record as SiteContent;
+    const mainJson = await mainResponse.json();
+    let libraryData: string[] = [];
+
+    if (libraryResponse.ok) {
+        const libraryJson = await libraryResponse.json();
+        if (libraryJson.record && Array.isArray(libraryJson.record.library)) {
+            libraryData = libraryJson.record.library;
+        }
+    } else {
+        console.warn(`Media Library cloud fetch error: ${libraryResponse.status}. Proceeding with an empty library.`);
+    }
+
+    return { ...mainJson.record, library: libraryData };
+
   } catch (error) {
     console.error("Failed to fetch cloud content:", error);
     return null;
   }
 };
 
-export const saveCloudContent = async (binIdArg: string, apiKeyArg: string, content: SiteContent): Promise<boolean> => {
-  const { binId, apiKey } = getCredentials(binIdArg, apiKeyArg);
-
-  if (!binId || !apiKey) throw new Error("Missing credentials for save");
-
-  try {
-    const response = await fetch(`${BASE_URL}/${binId}`, {
-      method: 'PUT',
-      headers: {
-        'X-Master-Key': apiKey,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(content)
-    });
-
-    if (!response.ok) {
-      let errorDetails = `Status: ${response.status}`;
-      try {
+const parseError = async (response: Response): Promise<string> => {
+    let errorDetails = `Status: ${response.status}`;
+    try {
         const errorJson = await response.json();
-        // JSONBin often puts the error in a 'message' property
         if (errorJson.message) {
-          errorDetails += ` - ${errorJson.message}`;
+            errorDetails += ` - ${errorJson.message}`;
         } else {
-          // Fallback to stringifying if message is not found
-          errorDetails += ` - ${JSON.stringify(errorJson)}`;
+            errorDetails += ` - ${JSON.stringify(errorJson)}`;
         }
-      } catch (e) {
-        // If the body isn't JSON, just use the statusText if available
+    } catch (e) {
         if (response.statusText) {
-          errorDetails += ` ${response.statusText}`;
+            errorDetails += ` ${response.statusText}`;
         }
-      }
-      throw new Error(`Cloud save failed: ${errorDetails}`);
     }
+    return errorDetails;
+}
+
+export const saveCloudContent = async (binIdArg: string, libraryBinIdArg: string, apiKeyArg: string, content: SiteContent): Promise<boolean> => {
+    const { binId, apiKey, libraryBinId } = getCredentials(binIdArg, apiKeyArg, libraryBinIdArg);
     
-    return true;
-  } catch (error) {
-    console.error("Failed to save cloud content:", error);
-    throw error;
-  }
+    if (!binId || !apiKey || !libraryBinId) throw new Error("Missing credentials for save");
+    
+    const { library, ...mainContent } = content;
+    const libraryContent = { library: library || [] };
+
+    try {
+        const mainSavePromise = fetch(`${BASE_URL}/${binId}`, {
+            method: 'PUT',
+            headers: { 'X-Master-Key': apiKey, 'Content-Type': 'application/json' },
+            body: JSON.stringify(mainContent)
+        });
+
+        const librarySavePromise = fetch(`${BASE_URL}/${libraryBinId}`, {
+            method: 'PUT',
+            headers: { 'X-Master-Key': apiKey, 'Content-Type': 'application/json' },
+            body: JSON.stringify(libraryContent)
+        });
+        
+        const [mainResult, libraryResult] = await Promise.all([mainSavePromise, librarySavePromise]);
+        
+        const errors = [];
+        if (!mainResult.ok) {
+            const errorDetails = await parseError(mainResult);
+            errors.push(`Main Content Save Failed: ${errorDetails}`);
+        }
+        if (!libraryResult.ok) {
+            const errorDetails = await parseError(libraryResult);
+            errors.push(`Media Library Save Failed: ${errorDetails}`);
+        }
+        
+        if (errors.length > 0) {
+            throw new Error(errors.join('\n'));
+        }
+        
+        return true;
+    } catch (error) {
+        console.error("Failed to save cloud content:", error);
+        throw error;
+    }
 };
 
-export const createCloudBin = async (apiKeyArg: string, content: SiteContent): Promise<string> => {
+export const createCloudBins = async (apiKeyArg: string, content: SiteContent): Promise<{ binId: string, libraryBinId: string }> => {
    const apiKey = (apiKeyArg || APP_CONFIG.CLOUD_API_KEY).trim();
-   
    if (!apiKey) throw new Error("Missing API Key");
 
+    const { library, ...mainContent } = content;
+    const libraryContent = { library: library || [] };
+
   try {
-    const response = await fetch(BASE_URL, {
+    const mainBinPromise = fetch(BASE_URL, {
       method: 'POST',
-      headers: {
-        'X-Master-Key': apiKey,
-        'Content-Type': 'application/json',
-        'X-Bin-Name': 'ONESIP_APP_DATA',
-        'X-Bin-Private': 'true'
-      },
-      body: JSON.stringify(content)
+      headers: { 'X-Master-Key': apiKey, 'Content-Type': 'application/json', 'X-Bin-Name': 'ONESIP_MAIN_CONTENT', 'X-Bin-Private': 'true' },
+      body: JSON.stringify(mainContent)
+    });
+    const libraryBinPromise = fetch(BASE_URL, {
+        method: 'POST',
+        headers: { 'X-Master-Key': apiKey, 'Content-Type': 'application/json', 'X-Bin-Name': 'ONESIP_MEDIA_LIBRARY', 'X-Bin-Private': 'true' },
+        body: JSON.stringify(libraryContent)
     });
 
-    if (!response.ok) {
-      const errText = await response.text();
-      throw new Error(`Creation failed: ${response.status} ${errText}`);
+    const [mainResult, libraryResult] = await Promise.all([mainBinPromise, libraryBinPromise]);
+    
+    if (!mainResult.ok || !libraryResult.ok) {
+        const mainError = !mainResult.ok ? await mainResult.text() : "";
+        const libraryError = !libraryResult.ok ? await libraryResult.text() : "";
+        throw new Error(`Bin creation failed: \nMain: ${mainError}\nLibrary: ${libraryError}`);
     }
 
-    const json = await response.json();
-    return json.metadata.id;
+    const mainJson = await mainResult.json();
+    const libraryJson = await libraryResult.json();
+
+    return { binId: mainJson.metadata.id, libraryBinId: libraryJson.metadata.id };
+
   } catch (error) {
-    console.error("Failed to create cloud bin:", error);
+    console.error("Failed to create cloud bins:", error);
     throw error;
   }
 };

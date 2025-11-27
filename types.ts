@@ -50,6 +50,7 @@ export interface Lead {
 export interface CloudConfig {
   enabled: boolean;
   binId: string;
+  libraryBinId: string;
   apiKey: string;
 }
 
