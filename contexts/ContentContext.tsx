@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 import { SiteContent, MenuItem, HeroContent, SectionItem, FinancialModelItem, ProcessPhase, CloudConfig, ShowcaseItem, FAQItem, Lead, Language, LocalizedText, CalculatorParams } from '../types';
 import { fetchCloudContent, saveCloudContent } from '../services/storageService';
 import { translateText } from '../services/geminiService';
@@ -1141,15 +1141,17 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
       }
   };
 
-  // ROBUST SAVE FUNCTION
-  const saveChanges = async () => {
+  // ✅ BUG FIX: REMOVED AUTO-SAVE AND ADDED ROBUST ERROR HANDLING
+  const saveChanges = useCallback(async () => {
     if (isLoading) return;
     setIsSyncing(true);
     
     try {
-        const contentToSave = JSON.parse(JSON.stringify(content));
+        // This is the critical step. If `content` is corrupted (e.g., contains `undefined`), this will throw an error.
+        const contentString = JSON.stringify(content);
+        const contentToSave = JSON.parse(contentString);
         
-        localStorage.setItem('onesip_content', JSON.stringify(contentToSave));
+        localStorage.setItem('onesip_content', contentString);
         
         let targetBin = cloudConfig.binId || APP_CONFIG.CLOUD_BIN_ID;
         let targetKey = cloudConfig.apiKey || APP_CONFIG.CLOUD_API_KEY;
@@ -1157,32 +1159,20 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
         if (targetBin && targetKey) {
             await saveCloudContent(targetBin, targetKey, contentToSave);
         }
-    } catch (e) {
+    } catch (e: any) {
         console.error("CRITICAL: Failed to serialize and save content!", e);
-        // Here you might want to add a user-facing error message
+        // This alert is crucial for user feedback on silent failures.
+        alert(
+          "保存失败！\n\n出现了一个严重错误，导致内容无法被保存。这通常是由于编辑了某个项目（例如一个产品）后导致的数据结构问题。\n\n请尝试刷新页面。如果问题仍然存在，请联系开发人员。\n\n错误信息: " + e.message
+        );
     } finally {
         setTimeout(() => setIsSyncing(false), 500);
     }
-  };
+  }, [content, isLoading, cloudConfig]);
 
-  // --- AUTO-SAVE EFFECT ---
-  useEffect(() => {
-    if (isInitialMount.current) {
-        isInitialMount.current = false;
-        return;
-    }
-    
-    const handler = setTimeout(() => {
-        if (isAdmin) {
-            saveChanges();
-        }
-    }, 1500);
-
-    return () => {
-        clearTimeout(handler);
-    };
-  }, [content, isAdmin]);
-
+  // ✅ BUG FIX: REMOVED aotu-save useEffect
+  // The auto-save functionality has been removed to prevent race conditions and silent failures.
+  // All saves are now triggered manually by the user.
 
   const submitLead = async (leadData: Omit<Lead, 'id' | 'timestamp' | 'status'>) => {
      const newLead: Lead = {
@@ -1195,17 +1185,24 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setContent(prev => {
         const newContent = { ...prev, leads: [newLead, ...(prev.leads || [])] };
         
-        localStorage.setItem('onesip_content', JSON.stringify(newContent));
+        // This save is separate and should be reliable
+        try {
+            const contentString = JSON.stringify(newContent);
+            localStorage.setItem('onesip_content', contentString);
         
-        let targetBin = cloudConfig.binId || APP_CONFIG.CLOUD_BIN_ID;
-        let targetKey = cloudConfig.apiKey || APP_CONFIG.CLOUD_API_KEY;
+            let targetBin = cloudConfig.binId || APP_CONFIG.CLOUD_BIN_ID;
+            let targetKey = cloudConfig.apiKey || APP_CONFIG.CLOUD_API_KEY;
 
-        if (targetBin && targetKey) {
-            setIsSyncing(true);
-            saveCloudContent(targetBin, targetKey, newContent)
-                .catch(e => console.error("Cloud sync lead failed", e))
-                .finally(() => setIsSyncing(false));
+            if (targetBin && targetKey) {
+                setIsSyncing(true);
+                saveCloudContent(targetBin, targetKey, JSON.parse(contentString))
+                    .catch(e => console.error("Cloud sync lead failed", e))
+                    .finally(() => setIsSyncing(false));
+            }
+        } catch (e) {
+            console.error("Failed to save lead", e);
         }
+
         return newContent;
     });
   };

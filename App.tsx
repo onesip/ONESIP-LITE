@@ -1,5 +1,6 @@
 
 
+
 import React, { useState, useEffect } from 'react';
 import { Navbar } from './components/Navbar';
 import { Hero } from './components/Hero';
@@ -38,7 +39,7 @@ const SectionWrapper = ({ isVisible, isAdmin, children }: { isVisible: boolean, 
 };
 
 const App: React.FC = () => {
-  const { isDashboardOpen, isAdmin, openDashboard, content, isLoading, isSyncing } = useContent();
+  const { isDashboardOpen, isAdmin, openDashboard, content, isLoading, isSyncing, saveChanges } = useContent();
   const [activeSection, setActiveSection] = useState('hero');
   const [showLoginScreen, setShowLoginScreen] = useState(false);
 
@@ -47,10 +48,17 @@ const App: React.FC = () => {
       if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'L') {
         setShowLoginScreen(true);
       }
+      // Global save shortcut
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+          e.preventDefault();
+          if (isAdmin) {
+              saveChanges();
+          }
+      }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  }, [isAdmin, saveChanges]);
 
   const scrollToSection = (id: string) => {
     const element = document.getElementById(id);
@@ -157,6 +165,15 @@ const App: React.FC = () => {
              ADMIN MODE
            </div>
            
+           <button 
+             onClick={saveChanges}
+             disabled={isSyncing}
+             className="bg-brand-green-medium hover:bg-brand-green-dark text-white w-14 h-14 rounded-full shadow-app flex items-center justify-center transition-all hover:scale-105 border-2 border-white/50 disabled:opacity-50 disabled:animate-pulse"
+             title="Save Changes (Ctrl+S)"
+           >
+             {isSyncing ? <Loader2 size={18} className="animate-spin"/> : <Save size={18} />}
+           </button>
+
            <button 
              onClick={openDashboard}
              className="bg-white hover:bg-gray-50 text-black w-14 h-14 rounded-full shadow-app flex items-center justify-center transition-transform hover:scale-105 border border-gray-100"
