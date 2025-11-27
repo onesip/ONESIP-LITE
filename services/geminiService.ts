@@ -63,7 +63,7 @@ export const getChatResponse = async (history: {role: string, parts: {text: stri
 
    if (!apiKey) {
       await new Promise(resolve => setTimeout(resolve, 1000));
-      if (userMessage.includes("加盟")) return "您好！很高兴您对 ONESIP LITE 感兴趣。我们的加盟模式非常灵活，0房租0装修，仅需引入设备即可。请问您目前的店铺类型是什么？（例如：餐厅、零售店、书店等）";
+      if (userMessage.includes("加盟")) return "您好！很高兴您对 ONESIP LITE 感интересно。我们的加盟模式非常灵活，0房租0装修，仅需引入设备即可。请问您目前的店铺类型是什么？（例如：餐厅、零售店、书店等）";
       if (userMessage.includes("费用") || userMessage.includes("多少钱")) return "我们的启动非常轻量化！主要是设备租赁押金和首批原料费。品牌管理费仅收营业额的 7%。具体收益您可以参考网页上方的【收益测算】板块。";
       if (userMessage.includes("人工")) return "ONESIP LITE 是高度自动化的！机器自动制作、自动清洗。通常现有店员兼职即可，无需专门聘请全职奶茶师。";
       return "收到您的消息！我们的招商经理稍后会人工接入为您解答。您也可以先看看页面上的【合作优势】介绍。";
@@ -91,7 +91,8 @@ export const getChatResponse = async (history: {role: string, parts: {text: stri
     });
 
     const result = await chat.sendMessage({ message: userMessage });
-    return result.text;
+    // FIX: `result.text` can be undefined. Fallback to an empty string to match the function's `Promise<string>` return type.
+    return result.text || "";
 
    } catch (error) {
      return "抱歉，我现在有点忙，请稍后再试或直接联系我们的人工客服。";

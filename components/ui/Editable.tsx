@@ -1,7 +1,6 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { useContent } from '../../contexts/ContentContext';
-import { Edit2, Image as ImageIcon, Grid, X, Check } from 'lucide-react';
+import { Edit2, Image as ImageIcon } from 'lucide-react';
 
 interface EditableTextProps {
   value: string;
@@ -104,19 +103,13 @@ interface EditableImageProps {
 }
 
 export const EditableImage: React.FC<EditableImageProps> = ({ src, alt, onSave, className }) => {
-  const { isAdmin, content } = useContent();
+  const { isAdmin } = useContent();
   const [isEditing, setIsEditing] = useState(false);
-  const [showLibrary, setShowLibrary] = useState(false);
   const [url, setUrl] = useState(src);
 
   const handleSave = () => {
     onSave(url);
     setIsEditing(false);
-  };
-
-  const handleSelectFromLibrary = (selectedUrl: string) => {
-      setUrl(selectedUrl);
-      setShowLibrary(false);
   };
 
   if (!isAdmin) {
@@ -139,7 +132,7 @@ export const EditableImage: React.FC<EditableImageProps> = ({ src, alt, onSave, 
 
       {isEditing && (
         <div className="absolute inset-0 z-50 bg-brand-green-dark/95 p-4 flex flex-col justify-center items-center gap-3 animate-fade-in">
-          <p className="text-white text-xs font-bold">更换图片 (URL 或 媒体库)</p>
+          <p className="text-white text-xs font-bold">粘贴新的图片 URL</p>
           
           <div className="flex gap-2 w-full">
                <input 
@@ -148,13 +141,6 @@ export const EditableImage: React.FC<EditableImageProps> = ({ src, alt, onSave, 
                 className="flex-1 text-xs p-2 rounded text-black outline-none"
                 placeholder="https://..."
               />
-              <button 
-                onClick={() => setShowLibrary(true)}
-                className="bg-indigo-500 hover:bg-indigo-400 text-white p-2 rounded flex items-center justify-center"
-                title="从媒体库选择"
-              >
-                  <Grid size={16} />
-              </button>
           </div>
           
           <div className="flex gap-2">
@@ -162,44 +148,6 @@ export const EditableImage: React.FC<EditableImageProps> = ({ src, alt, onSave, 
             <button onClick={() => setIsEditing(false)} className="bg-transparent border border-white text-white px-3 py-1.5 rounded text-xs">取消</button>
           </div>
         </div>
-      )}
-
-      {/* FULL SCREEN LIBRARY PICKER MODAL */}
-      {showLibrary && (
-          <div className="fixed inset-0 z-[10000] bg-black/90 flex flex-col animate-fade-in p-6">
-              <div className="flex justify-between items-center mb-6">
-                  <h3 className="text-white font-bold text-xl flex items-center gap-2">
-                      <Grid size={24} className="text-brand-green-medium"/> 选择一张图片
-                  </h3>
-                  <button onClick={() => setShowLibrary(false)} className="bg-white/10 hover:bg-white/20 p-2 rounded-full text-white">
-                      <X size={24} />
-                  </button>
-              </div>
-              
-              <div className="flex-1 overflow-y-auto grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 p-2">
-                   {/* Fallback if library is empty */}
-                   {(!content.library || content.library.length === 0) && (
-                       <div className="col-span-full text-center text-gray-500 py-20">
-                           媒体库是空的。请先去【控制台 - 媒体图库】上传图片。
-                       </div>
-                   )}
-
-                   {(content.library || []).map((libImg, idx) => (
-                       <div 
-                         key={idx} 
-                         onClick={() => handleSelectFromLibrary(libImg)}
-                         className={`relative aspect-square rounded-xl overflow-hidden cursor-pointer border-2 transition-all hover:scale-105 ${url === libImg ? 'border-brand-green-medium ring-2 ring-brand-green-medium/50' : 'border-white/10 hover:border-white'}`}
-                       >
-                           <img src={libImg} alt={`Lib ${idx}`} className="w-full h-full object-cover" />
-                           {url === libImg && (
-                               <div className="absolute top-2 right-2 bg-brand-green-medium text-white rounded-full p-1 shadow-lg">
-                                   <Check size={12} strokeWidth={4} />
-                               </div>
-                           )}
-                       </div>
-                   ))}
-              </div>
-          </div>
       )}
     </div>
   );

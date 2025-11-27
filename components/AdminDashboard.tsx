@@ -1,11 +1,9 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import { useContent } from '../contexts/ContentContext';
 import { useChat } from '../contexts/ChatContext';
-import { fetchCloudContent, createCloudBins } from '../services/storageService'; 
 import { 
   LayoutDashboard, 
   MessageSquare, 
-  Image as ImageIcon, 
   Edit3, 
   LogOut, 
   Search, 
@@ -13,9 +11,6 @@ import {
   Send,
   User,
   Bot,
-  PlusCircle,
-  TrendingUp,
-  Users,
   ArrowRight,
   ArrowLeft,
   Eye,
@@ -24,22 +19,14 @@ import {
   CheckCircle2,
   AlertCircle,
   Wifi,
-  Sparkles,
-  ExternalLink,
-  Copy,
   Rocket,
   ClipboardList,
   MapPin,
   Store,
   Clock,
   Calculator,
-  Save,
-  Loader2,
-  // FIX: Added missing Trash2 icon import
-  Trash2,
 } from 'lucide-react';
 import { LogoSymbol } from './BrandLogo';
-import { APP_CONFIG } from '../config';
 
 // --- Sub-Component: Dashboard Home (Launcher) ---
 const DashboardHome = ({ onNavigate }: { onNavigate: (tab: any) => void }) => {
@@ -61,14 +48,6 @@ const DashboardHome = ({ onNavigate }: { onNavigate: (tab: any) => void }) => {
       color: "bg-blue-500",
       action: closeDashboard, // Exit to frontend
       label: "进入装修模式"
-    },
-    {
-      title: "媒体图库",
-      desc: "集中管理全站图片资源，支持快速替换与云端链接同步。",
-      icon: ImageIcon,
-      color: "bg-purple-500",
-      action: () => onNavigate('media'),
-      label: "管理图片"
     },
     {
       title: "客服中心",
@@ -99,16 +78,16 @@ const DashboardHome = ({ onNavigate }: { onNavigate: (tab: any) => void }) => {
         <div className="bg-red-900/50 border border-red-500/30 rounded-2xl p-6 text-center animate-fade-in mb-10">
             <div className="flex items-center justify-center gap-3">
                 <AlertCircle className="text-red-400" size={24}/>
-                <h3 className="text-xl font-bold text-white">需要操作：云端存储未配置</h3>
+                <h3 className="text-xl font-bold text-white">云端未连接</h3>
             </div>
             <p className="text-red-300/80 text-sm mt-3 max-w-xl mx-auto">
-                系统检测到媒体库未完全设置，将无法同步图片。请前往 <strong>系统设置</strong> 页面，点击 “一键生成媒体库” 按钮完成配置。
+                系统无法连接到云端数据库。请前往 <strong>系统设置</strong> 页面检查您的配置是否正确。
             </p>
             <button 
                 onClick={() => onNavigate('settings')}
                 className="mt-4 bg-white text-black px-5 py-2 rounded-lg text-xs font-bold hover:bg-gray-200 transition-colors"
             >
-                前往设置
+                检查设置
             </button>
         </div>
       )}
@@ -118,7 +97,7 @@ const DashboardHome = ({ onNavigate }: { onNavigate: (tab: any) => void }) => {
         <p className="text-gray-400">请选择您要管理的核心模块</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         {modules.map((mod, i) => (
           <div key={i} className="group relative bg-[#1C1C1E] border border-white/5 rounded-3xl p-8 hover:bg-[#252528] transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl hover:shadow-black/50 flex flex-col">
             <div className={`w-16 h-16 rounded-2xl ${mod.color} flex items-center justify-center text-white shadow-lg mb-8 group-hover:scale-110 transition-transform`}>
@@ -258,101 +237,32 @@ const DashboardLeads = () => {
     );
 };
 
-// --- Sub-Component: Settings (Cloud) ---
+// --- Sub-Component: Settings (Cloud) - SIMPLIFIED ---
 const DashboardSettings = () => {
-    const { cloudConfig, updateCloudConfig, content, isCloudConfigured } = useContent();
-    const [localLibraryBinIds, setLocalLibraryBinIds] = useState(cloudConfig.libraryBinIds.length > 0 ? cloudConfig.libraryBinIds : Array(10).fill(''));
-    const [isEnabled, setIsEnabled] = useState(cloudConfig.enabled);
-    const [isTesting, setIsTesting] = useState(false);
-    const [isCreating, setIsCreating] = useState(false);
+    const { cloudConfig, isCloudConfigured } = useContent();
 
-    // Read directly from the config object, which is now populated from env vars first.
-    const localApiKey = cloudConfig.apiKey;
-    const localBinId = cloudConfig.binId;
-
-    // Determine the source for UI feedback
     const apiKeySource = process.env.REACT_APP_CLOUD_API_KEY ? 'Vercel Env' : 'config.ts';
     const binIdSource = process.env.REACT_APP_CLOUD_BIN_ID ? 'Vercel Env' : 'config.ts';
 
-
-    const handleTestConnection = async () => {
-        if (!localBinId || localLibraryBinIds.some(id => !id) || !localApiKey) {
-            alert("云端配置不完整。请确保 Vercel 环境变量或 config.ts 已配置，并已'一键生成媒体库'。");
-            return;
-        }
-        setIsTesting(true);
-        try {
-            await fetchCloudContent(localBinId, localApiKey, localLibraryBinIds);
-            alert("✅ 连接成功！云端配置有效，可以使用。");
-        } catch (e) {
-            alert("❌ 连接失败。请检查您的所有 ID 和 API Key 是否正确。");
-        } finally {
-            setIsTesting(false);
-        }
-    };
-
-    const handleAutoCreate = async () => {
-        if (!localApiKey) {
-            alert("错误：未找到 API Key。请在 Vercel 环境变量 (REACT_APP_CLOUD_API_KEY) 或 config.ts 中配置。");
-            return;
-        }
-        if (!confirm("此操作将使用您的 API Key 创建10个新的媒体库 Bin。确定要继续吗？")) {
-            return;
-        }
-        setIsCreating(true);
-        try {
-            const { library, ...mainContent } = content;
-            const { libraryBinIds } = await createCloudBins(localApiKey, mainContent);
-            
-            setLocalLibraryBinIds(libraryBinIds);
-            setIsEnabled(true);
-            
-            updateCloudConfig({
-                enabled: true,
-                binId: localBinId,
-                libraryBinIds: libraryBinIds,
-                apiKey: localApiKey
-            });
-            
-            alert(`🎉 成功！\n\n已自动创建10个媒体库仓库并保存配置。\n\n请刷新页面以使新配置生效。`);
-        } catch (e: any) {
-            alert(`❌ 自动创建失败。\n\n错误详情:\n${e.message}\n\n请检查:\n1. 您的 API Key 是否正确 (无论是在 Vercel 环境变量还是 config.ts 中)。\n2. 您的 API Key 是否有创建 Bins 的权限。`);
-            console.error(e);
-        } finally {
-            setIsCreating(false);
-        }
-    }
-
-    const handleSave = () => {
-        updateCloudConfig({
-            enabled: isEnabled,
-            binId: localBinId,
-            libraryBinIds: localLibraryBinIds,
-            apiKey: localApiKey
-        });
-        alert("设置已保存！请刷新页面以加载云端数据。");
-    };
-
     return (
         <div className="max-w-3xl mx-auto space-y-10 animate-fade-in">
-             {!isCloudConfigured && (
-                <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4 flex items-start gap-3">
-                    <AlertCircle className="text-yellow-500 mt-1 shrink-0" size={18}/>
-                    <div>
-                        <h4 className="text-yellow-500 font-bold text-sm">配置不完整</h4>
-                        <p className="text-yellow-500/70 text-xs mt-1">
-                            系统检测到媒体库 Bin IDs 未设置。请点击下方的 <strong>一键生成媒体库</strong> 按钮来完成初始化。
-                        </p>
-                    </div>
-                </div>
-             )}
-             {isCloudConfigured && (
+             {isCloudConfigured ? (
                 <div className="bg-green-500/10 border border-green-500/20 rounded-xl p-4 flex items-start gap-3">
                     <CheckCircle2 className="text-green-500 mt-1 shrink-0" size={18}/>
                     <div>
-                        <h4 className="text-green-500 font-bold text-sm">配置完成</h4>
+                        <h4 className="text-green-500 font-bold text-sm">云端同步已激活</h4>
                         <p className="text-green-500/70 text-xs mt-1">
-                            云端同步已完全配置，所有更改都将自动保存到云端。
+                            系统已成功连接到云端数据库。所有更改都将自动保存。
+                        </p>
+                    </div>
+                </div>
+             ) : (
+                <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 flex items-start gap-3">
+                    <AlertCircle className="text-red-500 mt-1 shrink-0" size={18}/>
+                    <div>
+                        <h4 className="text-red-500 font-bold text-sm">云端同步未激活</h4>
+                        <p className="text-red-500/70 text-xs mt-1">
+                            未能找到有效的 API Key 或 Bin ID。请检查您的 Vercel 环境变量或 `config.ts` 文件。
                         </p>
                     </div>
                 </div>
@@ -364,81 +274,23 @@ const DashboardSettings = () => {
                          <Cloud size={32} />
                      </div>
                      <div className="flex-1">
-                         <h3 className="text-2xl font-bold text-white mb-2">云端数据同步 (JSONBin)</h3>
+                         <h3 className="text-2xl font-bold text-white mb-2">云端数据同步</h3>
                          <p className="text-gray-400 leading-relaxed mb-6">
-                             系统会优先使用 Vercel 环境变量，若未设置，则回退到 `config.ts`。这里只需一键生成媒体库即可完成配置。
+                             系统会优先使用 Vercel 环境变量，若未设置，则回退到 `config.ts` 文件。无需额外设置。
                          </p>
                          
-                         <div className="bg-[#111211] p-6 rounded-xl border border-white/5 space-y-6">
-                             
-                             <div>
-                                 <label className="text-xs text-gray-500 uppercase tracking-wider font-bold mb-2 block">主账户配置</label>
-                                 <div className="space-y-2">
-                                     <div className="flex items-center gap-2">
-                                        <input value={`API Key: ${localApiKey ? localApiKey.substring(0, 15) + '...' : '未找到'}`} readOnly className="flex-1 bg-[#1C1C1E] border border-white/10 rounded-lg p-2 text-gray-500 font-mono text-xs cursor-not-allowed"/>
-                                        <span className={`text-[10px] font-bold px-2 py-1 rounded ${apiKeySource === 'Vercel Env' ? 'bg-blue-500/20 text-blue-300' : 'bg-gray-500/20 text-gray-400'}`}>{apiKeySource}</span>
-                                     </div>
-                                      <div className="flex items-center gap-2">
-                                        <input value={`主Bin ID: ${localBinId || '未找到'}`} readOnly className="flex-1 bg-[#1C1C1E] border border-white/10 rounded-lg p-2 text-gray-500 font-mono text-xs cursor-not-allowed"/>
-                                        <span className={`text-[10px] font-bold px-2 py-1 rounded ${binIdSource === 'Vercel Env' ? 'bg-blue-500/20 text-blue-300' : 'bg-gray-500/20 text-gray-400'}`}>{binIdSource}</span>
-                                     </div>
+                         <div className="bg-[#111211] p-6 rounded-xl border border-white/5 space-y-4">
+                             <h4 className="text-sm font-bold text-white">当前配置来源：</h4>
+                             <div className="space-y-2">
+                                 <div className="flex items-center gap-2">
+                                    <input value={`API Key: ${cloudConfig.apiKey ? cloudConfig.apiKey.substring(0, 15) + '...' : '未找到'}`} readOnly className="flex-1 bg-[#1C1C1E] border border-white/10 rounded-lg p-2 text-gray-500 font-mono text-xs cursor-not-allowed"/>
+                                    <span className={`text-[10px] font-bold px-2 py-1 rounded ${apiKeySource === 'Vercel Env' ? 'bg-blue-500/20 text-blue-300' : 'bg-gray-500/20 text-gray-400'}`}>{apiKeySource}</span>
+                                 </div>
+                                  <div className="flex items-center gap-2">
+                                    <input value={`主Bin ID: ${cloudConfig.binId || '未找到'}`} readOnly className="flex-1 bg-[#1C1C1E] border border-white/10 rounded-lg p-2 text-gray-500 font-mono text-xs cursor-not-allowed"/>
+                                    <span className={`text-[10px] font-bold px-2 py-1 rounded ${binIdSource === 'Vercel Env' ? 'bg-blue-500/20 text-blue-300' : 'bg-gray-500/20 text-gray-400'}`}>{binIdSource}</span>
                                  </div>
                              </div>
-
-                             <div>
-                                 <label className="text-xs text-gray-500 uppercase tracking-wider font-bold mb-2 block">媒体库 Bin IDs (10个)</label>
-                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                                     {localLibraryBinIds.map((id, i) => (
-                                         <input 
-                                            key={i}
-                                            value={id}
-                                            onChange={(e) => {
-                                                const newIds = [...localLibraryBinIds];
-                                                newIds[i] = e.target.value;
-                                                setLocalLibraryBinIds(newIds);
-                                            }}
-                                            placeholder={`媒体库 #${i+1}`}
-                                            className="w-full bg-[#1C1C1E] border border-white/10 rounded-lg p-2 text-white focus:border-brand-green-medium outline-none transition-colors font-mono text-xs"
-                                         />
-                                     ))}
-                                 </div>
-                                  <button
-                                        onClick={handleAutoCreate}
-                                        disabled={isCreating || !localApiKey}
-                                        className={`w-full mt-4 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:bg-gray-700 text-white px-5 py-2 rounded-lg text-xs font-bold whitespace-nowrap flex items-center justify-center gap-2 transition-all shadow-lg shadow-indigo-500/20 ${!isCloudConfigured ? 'animate-pulse' : ''}`}
-                                        title="使用检测到的 API Key 自动生成 10 个媒体库 Bin"
-                                     >
-                                         {isCreating ? <Loader2 size={14} className="animate-spin"/> : <Sparkles size={14} />}
-                                         {isCreating ? "创建中..." : "一键生成媒体库 (10个)"}
-                                  </button>
-                             </div>
-                             
-                             <div className="flex items-center justify-between pt-4 border-t border-white/5">
-                                 <label className="text-sm font-bold text-white">启用云端同步</label>
-                                 <button 
-                                    onClick={() => setIsEnabled(!isEnabled)}
-                                    className={`w-12 h-6 rounded-full relative transition-colors ${isEnabled ? 'bg-brand-green-medium' : 'bg-gray-700'}`}
-                                 >
-                                     <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${isEnabled ? 'left-7' : 'left-1'}`}></div>
-                                 </button>
-                             </div>
-                         </div>
-
-                         <div className="mt-8 flex gap-4">
-                             <button 
-                                onClick={handleSave}
-                                className="px-6 py-3 bg-brand-green-medium hover:bg-brand-green-dark text-white rounded-xl font-bold transition-colors flex items-center gap-2 shadow-lg shadow-brand-green-medium/20"
-                             >
-                                 <CheckCircle2 size={18} /> 保存配置
-                             </button>
-                             <button 
-                                onClick={handleTestConnection}
-                                disabled={isTesting}
-                                className="px-6 py-3 bg-white/5 hover:bg-white/10 text-white rounded-xl font-bold transition-colors flex items-center gap-2 border border-white/10"
-                             >
-                                 {isTesting ? <Loader2 size={18} className="animate-spin"/> : <Wifi size={18} />} 
-                                 {isTesting ? "测试中..." : "测试连接"}
-                             </button>
                          </div>
                      </div>
                  </div>
@@ -459,7 +311,6 @@ const DashboardSettings = () => {
                                 将您的 API Key 和主 Bin ID 设置为 Vercel 项目的环境变量，变量名分别为 `REACT_APP_CLOUD_API_KEY` 和 `REACT_APP_CLOUD_BIN_ID`。
                             </p>
                          </div>
-                         
                          <p className="text-gray-400 leading-relaxed mb-6 text-sm">
                              发布成功后，您的网站就拥有了“云端记忆”。您在后台做的任何修改，都会即时同步给所有访问者，**无需再次 Deploy**。
                          </p>
@@ -573,170 +424,6 @@ const DashboardChat = () => {
   );
 };
 
-// --- Sub-Component: Media Library ---
-const DashboardMedia = () => {
-  const { content, addToLibrary, removeFromLibrary, saveChanges, isSyncing } = useContent();
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [isUploading, setIsUploading] = useState(false);
-  
-  const library = content.library || [];
-  const allImages = library.map((src) => ({ 
-      id: src,
-      src, 
-      name: `Uploaded Image`, 
-      isDeletable: true 
-  }));
-
-  const compressImage = (file: File): Promise<string> => {
-      return new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.readAsDataURL(file);
-          reader.onload = (event) => {
-              const img = new Image();
-              img.src = event.target?.result as string;
-              img.onload = () => {
-                  const elem = document.createElement('canvas');
-                  const maxWidth = 800;
-                  let width = img.width;
-                  let height = img.height;
-
-                  if (width > maxWidth) {
-                      height = Math.round((height * maxWidth) / width);
-                      width = maxWidth;
-                  }
-
-                  elem.width = width;
-                  elem.height = height;
-                  const ctx = elem.getContext('2d');
-                  ctx?.drawImage(img, 0, 0, width, height);
-                  
-                  resolve(elem.toDataURL('image/jpeg', 0.7));
-              };
-              img.onerror = (err) => reject(err);
-          };
-          reader.onerror = (err) => reject(err);
-      });
-  };
-
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-      if (e.target.files && e.target.files[0]) {
-          const file = e.target.files[0];
-          
-          if (library.length >= 10) {
-              alert("媒体库已满，最多只能存放 10 张图片。请先删除一些旧图片。");
-              return;
-          }
-          
-          if (file.size > 100 * 1024) {
-              alert("图片太大！请选择小于 100kb 的图片。");
-              return;
-          }
-
-          setIsUploading(true);
-          try {
-              const base64 = await compressImage(file);
-              addToLibrary(base64);
-          } catch (error) {
-              console.error("Upload failed", error);
-              alert("上传失败，请重试");
-          } finally {
-              setIsUploading(false);
-              if (fileInputRef.current) fileInputRef.current.value = "";
-          }
-      }
-  };
-
-  const handleCopyUrl = (url: string) => {
-      navigator.clipboard.writeText(url);
-      alert("✅ 图片链接已复制！\n现在可以去【CMS 装修】模式下粘贴使用了。");
-  };
-
-  return (
-    <div className="h-[calc(100vh-140px)] overflow-y-auto animate-fade-in p-2">
-        <div className="flex justify-between items-center mb-6">
-            <h3 className="text-white font-bold text-xl flex items-center gap-3">
-                <ImageIcon size={24} className="text-purple-400"/> 媒体图库
-                <span className="text-sm bg-white/10 px-3 py-1 rounded-full text-gray-400">{library.length} / 10</span>
-            </h3>
-            <button 
-                onClick={saveChanges}
-                disabled={isSyncing}
-                className="bg-brand-green-medium hover:bg-brand-green-dark text-white px-4 py-2 rounded-lg text-xs font-bold transition-colors flex items-center gap-2 disabled:opacity-50"
-            >
-                {isSyncing ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
-                {isSyncing ? '同步中...' : '保存媒体库'}
-            </button>
-        </div>
-        <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4 mb-8 flex items-start gap-3">
-             <AlertCircle className="text-yellow-500 mt-1 shrink-0" size={18}/>
-             <div>
-                 <h4 className="text-yellow-500 font-bold text-sm">关于图片存储</h4>
-                 <p className="text-yellow-500/70 text-xs mt-1">
-                     媒体库最多可存放 <strong>10</strong> 张图片，每张图片独立存储。上传前请确保图片大小不超过 <strong>100kb</strong>。
-                 </p>
-             </div>
-        </div>
-
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
-            {/* Upload Button */}
-            <div 
-                onClick={() => !isUploading && fileInputRef.current?.click()}
-                className={`aspect-square bg-[#1C1C1E] rounded-2xl border-2 border-white/5 border-dashed flex flex-col items-center justify-center cursor-pointer hover:bg-white/5 transition group ${isUploading || library.length >= 10 ? 'opacity-50 cursor-not-allowed' : ''}`}
-            >
-                <input 
-                    type="file" 
-                    ref={fileInputRef} 
-                    className="hidden" 
-                    accept="image/*"
-                    onChange={handleFileUpload}
-                    disabled={isUploading || library.length >= 10}
-                />
-                {isUploading ? (
-                    <div className="animate-spin text-brand-green-medium mb-2"><Loader2 size={32}/></div>
-                ) : (
-                    <PlusCircle size={40} className={`text-gray-600 ${library.length < 10 && 'group-hover:text-brand-green-medium'} mb-2`}/>
-                )}
-                <span className="text-sm text-gray-500 font-medium">
-                    {isUploading ? "处理中..." : (library.length >= 10 ? "媒体库已满" : "上传新图片")}
-                </span>
-            </div>
-
-            {/* Image Grid */}
-            {allImages.map((img) => (
-                <div key={img.id} className="group relative aspect-square bg-[#1C1C1E] rounded-2xl overflow-hidden border border-white/5 shadow-lg">
-                    <img src={img.src} alt={img.name} className="w-full h-full object-cover group-hover:scale-110 transition duration-700" />
-                    
-                    {/* Hover Actions */}
-                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition flex flex-col items-center justify-center gap-2 p-2">
-                        <button 
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                handleCopyUrl(img.src);
-                            }}
-                            className="bg-white text-black px-3 py-1.5 rounded-full text-[10px] font-bold hover:scale-105 transition flex items-center gap-1"
-                        >
-                            <Copy size={10} /> 复制 URL
-                        </button>
-                        
-                        {img.isDeletable && (
-                            <button 
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    removeFromLibrary(img.src);
-                                }}
-                                className="bg-red-500/20 text-red-400 px-3 py-1.5 rounded-full text-[10px] font-bold hover:bg-red-500/40 transition flex items-center gap-1"
-                            >
-                                <Trash2 size={10} /> 删除
-                            </button>
-                        )}
-                    </div>
-                </div>
-            ))}
-        </div>
-    </div>
-  );
-};
-
 // --- Sub-Component: Calculator Config ---
 const DashboardCalculatorConfig = () => {
     const { content, updateCalculatorParam, updateCalculatorLaborLevel } = useContent();
@@ -820,7 +507,7 @@ const DashboardCalculatorConfig = () => {
 
 export const AdminDashboard = () => {
   const { logout, closeDashboard } = useContent();
-  const [activeTab, setActiveTab] = useState<'home' | 'cms' | 'media' | 'chat' | 'settings' | 'leads' | 'calculator'>('home');
+  const [activeTab, setActiveTab] = useState<'home' | 'cms' | 'chat' | 'settings' | 'leads' | 'calculator'>('home');
 
   return (
     <div className="flex h-screen w-full bg-[#111211] text-gray-200 font-sans selection:bg-brand-green-medium selection:text-white overflow-hidden">
@@ -864,12 +551,6 @@ export const AdminDashboard = () => {
                 <MessageSquare size={18} /> 客服中心
             </button>
             <button 
-                onClick={() => setActiveTab('media')}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'media' ? 'bg-brand-green-medium text-white shadow-lg shadow-brand-green-medium/20' : 'text-gray-400 hover:bg-white/5 hover:text-white'}`}
-            >
-                <ImageIcon size={18} /> 媒体图库
-            </button>
-            <button 
                 onClick={() => setActiveTab('calculator')}
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'calculator' ? 'bg-brand-green-medium text-white shadow-lg shadow-brand-green-medium/20' : 'text-gray-400 hover:bg-white/5 hover:text-white'}`}
             >
@@ -909,7 +590,6 @@ export const AdminDashboard = () => {
              {activeTab === 'home' && "控制台 / 模块显示管理"}
              {activeTab === 'leads' && "加盟申请 (Leads)"}
              {activeTab === 'chat' && "客服中心 (Live Chat)"}
-             {activeTab === 'media' && "媒体图库 (Media Library)"}
              {activeTab === 'calculator' && "利润测算器配置"}
              {activeTab === 'settings' && "系统设置 (System Settings)"}
           </h2>
@@ -932,7 +612,6 @@ export const AdminDashboard = () => {
             {activeTab === 'home' && <DashboardHome onNavigate={setActiveTab} />}
             {activeTab === 'leads' && <DashboardLeads />}
             {activeTab === 'chat' && <DashboardChat />}
-            {activeTab === 'media' && <DashboardMedia />}
             {activeTab === 'calculator' && <DashboardCalculatorConfig />}
             {activeTab === 'settings' && <DashboardSettings />}
         </div>

@@ -1,4 +1,3 @@
-
 export type Language = 'zh' | 'en';
 
 export interface LocalizedText {
@@ -50,7 +49,6 @@ export interface Lead {
 export interface CloudConfig {
   enabled: boolean;
   binId: string;
-  libraryBinIds: string[];
   apiKey: string;
 }
 
@@ -253,7 +251,6 @@ export interface SiteContent {
   menu: MenuItem[];
   partner: PartnerContent;
   footer: FooterContent;
-  library: string[];
   leads: Lead[];
   calculatorParams: CalculatorParams; // NEW
 }

@@ -310,7 +310,7 @@ const defaultContent: SiteContent = {
       tag: t("TOP 1", "TOP 1"), 
       desc: t("浓郁泰式红茶撞上咸香芝士奶盖，口感层次丰富。", "Rich Thai tea meets salty cheese foam. Complex layers."),
       ingredients: ["泰奶", "奶盖", "西米"],
-      image: "https://images.unsplash.com/photo-1595981267035-7b04ca84a82d?auto=format&fit=crop&w=800&q=80", 
+      image: "https://i.postimg.cc/FsStRHyR/IMG-5183.jpg", 
     },
     { 
       id: 2,
@@ -320,7 +320,7 @@ const defaultContent: SiteContent = {
       tag: t("Classic", "Classic"), 
       desc: t("港式经典复刻，新鲜芒果肉感十足，解腻首选。", "HK Classic. Fresh mango flesh. Refreshing choice."),
       ingredients: ["鲜奶", "芒果", "西柚"],
-      image: "https://images.unsplash.com/photo-1546173159-315724a31696?auto=format&fit=crop&w=800&q=80", 
+      image: "https://i.postimg.cc/BQFW6nTb/IMG_5185.jpg", 
     },
     { 
       id: 3,
@@ -330,7 +330,7 @@ const defaultContent: SiteContent = {
       tag: t("Popular", "Popular"), 
       desc: t("精选多肉葡萄，搭配顺滑酸奶与清新茶底。", "Selected fleshy grapes with yogurt and fresh tea."),
       ingredients: ["葡萄", "酸奶", "茶冻"],
-      image: "https://images.unsplash.com/photo-1557800636-894a64c1696f?auto=format&fit=crop&w=800&q=80", 
+      image: "https://i.postimg.cc/CL8y1xGZ/IMG_5184.jpg", 
     },
     { 
       id: 4,
@@ -340,7 +340,7 @@ const defaultContent: SiteContent = {
       tag: t("Fresh", "Fresh"), 
       desc: t("清润小吊梨汤底，加入马蹄爽脆颗粒，养生又好喝。", "Pear soup base with crunchy water chestnuts. Healthy."),
       ingredients: ["小吊梨", "马蹄", "银耳"],
-      image: "https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?auto=format&fit=crop&w=800&q=80", 
+      image: "https://i.postimg.cc/c43qHLRn/IMG_5188.jpg", 
     },
     { 
       id: 5,
@@ -350,7 +350,7 @@ const defaultContent: SiteContent = {
       tag: t("Rich", "Rich"), 
       desc: t("古法黑糖挂壁，Q弹温热珍珠撞入冰鲜牛奶。", "Brown sugar stripes. Chewy warm boba in cold milk."),
       ingredients: ["黑糖", "珍珠", "鲜奶"],
-      image: "https://images.unsplash.com/photo-1558160074-4d7d8bdf4256?auto=format&fit=crop&w=800&q=80", 
+      image: "https://i.postimg.cc/8Pv85zRj/IMG_5186.jpg", 
     },
     { 
       id: 6,
@@ -360,7 +360,7 @@ const defaultContent: SiteContent = {
       tag: t("Value", "Value"), 
       desc: t("七窨茉莉花茶底，清香扑鼻，性价比之王。", "Seven-scented jasmine tea base. Fragrant and high value."),
       ingredients: ["茉莉绿茶", "鲜奶"],
-      image: "https://images.unsplash.com/photo-1627435601361-ec25f5b1d0e5?auto=format&fit=crop&w=800&q=80", 
+      image: "https://i.postimg.cc/NfXhMj62/IMG_5187.jpg", 
     },
   ],
   faq: {
@@ -418,7 +418,6 @@ const defaultContent: SiteContent = {
     resourceTitle: t("资源下载", "Resources"),
     copyright: "© 2025 ONESIP B.V."
   },
-  library: [],
   leads: [],
   calculatorParams: defaultCalculatorParams,
 };
@@ -674,7 +673,7 @@ interface ContentContextType {
   isSyncing: boolean;
   isAdmin: boolean;
   isDashboardOpen: boolean;
-  dataSource: 'cloud' | 'local' | 'default'; 
+  dataSource: 'cloud' | 'default'; 
   isLeadFormOpen: boolean;
   language: Language;
   isCloudConfigured: boolean;
@@ -702,8 +701,6 @@ interface ContentContextType {
   updateProcessPhaseDetail: (phaseIndex: number, type: 'benefits' | 'obligations', detailIndex: number, value: string) => void;
   updateCalculatorParam: (modelId: 'A' | 'B' | 'C' | 'D', field: string, value: number) => void;
   updateCalculatorLaborLevel: (levelIndex: number, field: 'maxCups' | 'cost', value: number) => void;
-  addToLibrary: (url: string) => void;
-  removeFromLibrary: (url: string) => void;
   submitLead: (lead: Omit<Lead, 'id' | 'timestamp' | 'status'>) => Promise<void>;
   
   addSectionItem: (section: 'model' | 'partner' | 'showcase' | 'faq') => void;
@@ -725,16 +722,15 @@ const ContentContext = createContext<ContentContextType | undefined>(undefined);
 
 export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [content, setContent] = useState<SiteContent>(defaultContent);
-  const [cloudConfig, setCloudConfig] = useState<CloudConfig>({ enabled: false, binId: '', libraryBinIds: [], apiKey: '' });
+  const [cloudConfig, setCloudConfig] = useState<CloudConfig>({ enabled: false, binId: '', apiKey: '' });
   const [isAdmin, setIsAdmin] = useState(false);
   const [isDashboardOpen, setIsDashboardOpen] = useState(false);
   const [isLeadFormOpen, setIsLeadFormOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
-  const [dataSource, setDataSource] = useState<'cloud' | 'local' | 'default'>('default');
+  const [dataSource, setDataSource] = useState<'cloud' | 'default'>('default');
   const [language, setLanguage] = useState<Language>('zh');
   const [isCloudConfigured, setIsCloudConfigured] = useState(false);
-  const isInitialMount = useRef(true);
 
   // --- AUTO TRANSLATE HELPER ---
   const autoSyncEnglish = async (text: string, callback: (translated: string) => void) => {
@@ -747,25 +743,13 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   // Load Cloud Config first, then content
   useEffect(() => {
-    // WATCHDOG
-    const timeoutId = setTimeout(() => {
-        setIsLoading(prev => {
-            if (prev) console.warn("Forcing app load due to timeout");
-            return false;
-        });
-    }, 3000);
-
     const init = async () => {
       setIsLoading(true);
       try {
-        let currentConfig: CloudConfig = { enabled: false, binId: '', libraryBinIds: [], apiKey: '' };
+        let currentConfig: CloudConfig = { enabled: false, binId: '', apiKey: '' };
 
-        // --- NEW LOGIC: Prioritize Environment Variables ---
-        // Priority 1: Vercel/Build Environment Variables (prefixed with REACT_APP_)
         const envApiKey = process.env.REACT_APP_CLOUD_API_KEY;
         const envBinId = process.env.REACT_APP_CLOUD_BIN_ID;
-
-        // Priority 2: Hardcoded config.ts (for local dev fallback)
         const configApiKey = APP_CONFIG.CLOUD_API_KEY;
         const configBinId = APP_CONFIG.CLOUD_BIN_ID;
         
@@ -777,59 +761,40 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
              currentConfig.apiKey = finalApiKey;
              currentConfig.binId = finalBinId; 
         }
-        // --- END NEW LOGIC ---
-
-        const savedCloudConfig = localStorage.getItem('onesip_cloud_config');
-        if (savedCloudConfig) {
-            try {
-                const parsed = JSON.parse(savedCloudConfig);
-                // Merge, allowing localStorage to provide libraryBinIds, which are not in env vars
-                currentConfig = { ...currentConfig, ...parsed };
-            } catch (e) {}
-        }
-
-        const isConfigComplete = currentConfig.enabled && !!currentConfig.binId && !!currentConfig.apiKey && Array.isArray(currentConfig.libraryBinIds) && currentConfig.libraryBinIds.length === 10 && currentConfig.libraryBinIds.every(id => !!id);
+        
+        const isConfigComplete = currentConfig.enabled && !!currentConfig.binId && !!currentConfig.apiKey;
         setIsCloudConfigured(isConfigComplete);
         setCloudConfig(currentConfig);
 
         if (isConfigComplete) {
             try {
-                console.log("Fetching from Cloud Bins...", currentConfig.binId, ...currentConfig.libraryBinIds);
-                const cloudData = await fetchCloudContent(currentConfig.binId, currentConfig.apiKey, currentConfig.libraryBinIds);
+                console.log("Fetching from Cloud Bin...", currentConfig.binId);
+                const cloudData = await fetchCloudContent(currentConfig.binId, currentConfig.apiKey);
                 if (cloudData) {
                     const migratedData = migrateContent(cloudData);
                     setContent(prev => ({ ...defaultContent, ...migratedData }));
                     setDataSource('cloud');
-                    setIsLoading(false);
-                    clearTimeout(timeoutId);
                     return; 
+                } else {
+                    console.warn("Cloud fetch returned null, using default content.");
+                    setDataSource('default');
                 }
             } catch (e) {
-                console.error("Cloud fetch failed", e);
+                console.error("Cloud fetch failed, falling back to default content.", e);
+                setDataSource('default');
             }
-        }
-
-        const savedContent = localStorage.getItem('onesip_content');
-        if (savedContent) {
-            try {
-                const parsed = JSON.parse(savedContent);
-                const migratedData = migrateContent(parsed);
-                setContent(prev => ({ ...defaultContent, ...migratedData }));
-                setDataSource('local');
-            } catch (e) {}
         } else {
+            console.log("Cloud sync not configured, using default content.");
             setDataSource('default');
         }
       } catch (e) {
           console.error("Catastrophic error in initialization", e);
       } finally {
           setIsLoading(false);
-          clearTimeout(timeoutId);
       }
     };
 
     init();
-    return () => clearTimeout(timeoutId);
   }, []);
 
   const login = () => { setIsAdmin(true); setIsDashboardOpen(true); };
@@ -844,11 +809,8 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const updateCloudConfig = (config: Partial<CloudConfig>) => {
       setCloudConfig(prev => {
           const newConfig = { ...prev, ...config };
-          localStorage.setItem('onesip_cloud_config', JSON.stringify(newConfig));
-          
-          const isConfigComplete = newConfig.enabled && !!newConfig.binId && !!newConfig.apiKey && Array.isArray(newConfig.libraryBinIds) && newConfig.libraryBinIds.length === 10 && newConfig.libraryBinIds.every(id => !!id);
+          const isConfigComplete = newConfig.enabled && !!newConfig.binId && !!newConfig.apiKey;
           setIsCloudConfigured(isConfigComplete);
-          
           return newConfig;
       });
   };
@@ -1137,43 +1099,28 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
       };
     });
   };
-  
-  const addToLibrary = (url: string) => {
-    setContent(prev => ({ ...prev, library: [url, ...(prev.library || [])] }));
-  };
-  
-  const removeFromLibrary = (url: string) => {
-      if (confirm("确定要删除这张图片吗？")) {
-         setContent(prev => {
-             const newLibrary = (prev.library || []).filter(i => i !== url);
-             return { ...prev, library: newLibrary };
-         });
-      }
-  };
 
   const saveChanges = useCallback(async () => {
     if (isLoading) return;
     setIsSyncing(true);
     
     try {
-        const contentString = JSON.stringify(content);
-        const contentToSave = JSON.parse(contentString);
+        const contentToSave = JSON.parse(JSON.stringify(content));
+        localStorage.setItem('onesip_content', JSON.stringify(contentToSave));
         
-        localStorage.setItem('onesip_content', contentString);
-        
-        const { binId, libraryBinIds, apiKey } = cloudConfig;
+        const { binId, apiKey } = cloudConfig;
 
-        if (isCloudConfigured && binId && libraryBinIds.length > 0 && apiKey) {
-            await saveCloudContent(binId, libraryBinIds, apiKey, contentToSave);
+        if (isCloudConfigured && binId && apiKey) {
+            await saveCloudContent(binId, apiKey, contentToSave);
         } else {
             console.warn("Cloud save skipped: configuration incomplete.");
         }
     } catch (e: any) {
         console.error("CRITICAL: Failed to save content!", e);
-        let alertMessage = "保存失败！\n\n出现了一个严重错误，导致内容无法被保存。这可能是由于：\n1. 数据结构问题（例如编辑产品后）。\n2. 网络连接中断。\n3. 内容过大（例如上传了太多图片）。\n\n请尝试刷新页面。如果问题仍然存在，请联系开发人员。\n\n详细错误: " + e.message;
+        let alertMessage = "保存失败！\n\n出现了一个严重错误，导致内容无法被保存。这可能是由于：\n1. 网络连接中断。\n2. 内容过大。\n\n详细错误: " + e.message;
         
-        if (e.message && (e.message.includes('100kb') || e.message.includes('413'))) {
-            alertMessage += "\n\n解决方案：您的免费云存储空间（100kb）已满。请升级您的 jsonbin.io 账户，或减少媒体库中的图片数量。";
+        if (e.message && (e.message.includes('100kb') || e.message.includes('413') || e.message.includes('too large'))) {
+            alertMessage += "\n\n解决方案：您的免费云存储空间（100kb）已满。请升级您的 jsonbin.io 账户，或减少内容。";
         }
 
         alert(alertMessage);
@@ -1190,24 +1137,19 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
         status: 'new'
     };
     
-    // Create new content state immediately
     const newContent = { ...content, leads: [newLead, ...(content.leads || [])] };
     setContent(newContent); // Update UI optimistically
     
-    // Attempt to save this new state in the background
     try {
-        const contentString = JSON.stringify(newContent);
-        localStorage.setItem('onesip_content', contentString);
-    
-        const { binId, libraryBinIds, apiKey } = cloudConfig;
+        localStorage.setItem('onesip_content', JSON.stringify(newContent));
+        const { binId, apiKey } = cloudConfig;
 
-        if (isCloudConfigured && binId && libraryBinIds.length > 0 && apiKey) {
+        if (isCloudConfigured && binId && apiKey) {
             setIsSyncing(true);
-            await saveCloudContent(binId, libraryBinIds, apiKey, newContent);
+            await saveCloudContent(binId, apiKey, newContent);
         }
     } catch (e) {
         console.error("Cloud sync on lead submission failed", e);
-        // Optionally alert user that submission was local only
     } finally {
         setIsSyncing(false);
     }
@@ -1347,8 +1289,10 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
       updateProcessPhaseDetail,
       updateCalculatorParam,
       updateCalculatorLaborLevel,
-      addToLibrary,
-      removeFromLibrary,
+      // @ts-ignore - Media library functions are intentionally removed
+      addToLibrary: () => {},
+      // @ts-ignore
+      removeFromLibrary: () => {},
       submitLead,
       addSectionItem,
       deleteSectionItem,
