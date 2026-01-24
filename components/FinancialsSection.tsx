@@ -68,51 +68,108 @@ export const FinancialsSection = () => {
   const { models } = financials;
 
   const [dailyCups, setDailyCups] = useState(60);
-  const [activeModelId, setActiveModelId] = useState<string>('D'); // Default to ONESIP
+  const [activeModelId, setActiveModelId] = useState<string>('D'); 
   const [chartData, setChartData] = useState<any[]>([]);
 
   const daysPerMonth = 30;
 
-  // --- Comprehensive Calculation Logic for EACH Model ---
-  const calculateDetails = (modelId: string, cups: number): DetailedModelData => {
+  // --- 核心数据校准 (源自 Excel: 商业模式营收对比 & 加盟政策) ---
+  const EXCEL_CONSTANTS = {
+    // A模式: 传统原料自营 (Competitor)
+    modelA: { 
+      price: 5,               // 均价 5
+      cap: 30,                // 客流上限 30杯/日 (忙不过来/口味一般)
+      materialRate: 1.1 / 5,  // 原料成本率 (1.1/5 = 22%)
+      labor: 2250,            // 固定人工
+      rent: 0,
+      misc: 0
+    },
+    // B模式: 租赁小型机器 (Competitor)
+    modelB: { 
+      price: 5,               // 均价 5
+      cap: 35,                // 客流上限 35杯/日 (客户群体局限)
+      materialRate: 1.1 / 5,  // 原料成本率
+      labor: 1125,            // 固定人工
+      rent: 450,              // 机器租金
+      misc: 0
+    },
+    // C模式: 传统自营奶茶店 (Competitor - High Risk)
+    modelC: { 
+      price: 6,               // 均价 6 (Excel明确注明)
+      cap: 120,               // 自营店理论上限较高，但成本极高
+      materialRate: 1.1 / 6,  // 原料成本率 (1.1/6 ≈ 18%)
+      labor: 9900,            // 极高人工 (3人x3300)
+      rent: 2000,             // 房租
+      utilities: 1000,        // 水电气
+      misc: 500               // 其他
+    },
+    // D模式: ONESIP LITE (Our Product)
+    modelD: { 
+      price: 5,               // 均价 5
+      // 核心政策: 加盟商净利 1.5欧元/杯 (30% Margin)
+      // 这里的成本是倒推的：营收 - 1.5*杯数 = 品牌服务费/供应链成本
+      profitPerCup: 1.5       
+    }
+  };
+
+  // --- 重写的精准计算逻辑 (Calculate Logic) ---
+  const calculateDetails = (modelId: string, inputCups: number): DetailedModelData => {
       let revenue = 0;
       let costMaterials = 0;
       let costLabor = 0;
       let costRent = 0;
       let costEquip = 0;
       let costMisc = 0;
-      
-      const params = calculatorParams[modelId as keyof typeof calculatorParams];
-      if (!params) return { revenue, costMaterials, costLabor, costRent, costEquip, costMisc, totalCost: 0, profit: 0 };
 
-
-      if (modelId === 'A' || modelId === 'B') {
-          const effectiveCups = Math.min(cups, params.capCups || cups);
-          revenue = effectiveCups * daysPerMonth * params.price;
-          costMaterials = revenue * params.cogsRate;
-          costLabor = params.laborFixed || 0;
-          costRent = params.rent;
-          costEquip = params.equipFixed || 0;
-          costMisc = params.misc;
-      }
-      else if (modelId === 'C') {
-          revenue = cups * daysPerMonth * params.price;
-          costMaterials = revenue * params.cogsRate;
-          costLabor = params.laborFixed || 0;
-          costRent = params.rent;
-          costEquip = params.equipFixed || 0;
-          costMisc = params.misc;
-      }
-      else if (modelId === 'D') {
-          revenue = cups * daysPerMonth * params.price;
-          costMaterials = revenue * params.cogsRate;
+      // Model A: 传统自营 (受限于 Cap 30杯)
+      if (modelId === 'A') {
+          const actualCups = Math.min(inputCups, EXCEL_CONSTANTS.modelA.cap); // 限制客流
+          const monthlyCups = actualCups * daysPerMonth;
           
-          const laborLevel = (params.laborLevels || []).find(l => cups <= l.maxCups) || params.laborLevels?.[params.laborLevels.length - 1];
-          costLabor = laborLevel?.cost || 0;
+          revenue = monthlyCups * EXCEL_CONSTANTS.modelA.price;
+          costMaterials = revenue * EXCEL_CONSTANTS.modelA.materialRate;
+          costLabor = EXCEL_CONSTANTS.modelA.labor;
+          costRent = EXCEL_CONSTANTS.modelA.rent;
+          costMisc = EXCEL_CONSTANTS.modelA.misc;
+      }
+      // Model B: 租赁机器 (受限于 Cap 35杯)
+      else if (modelId === 'B') {
+          const actualCups = Math.min(inputCups, EXCEL_CONSTANTS.modelB.cap); // 限制客流
+          const monthlyCups = actualCups * daysPerMonth;
 
-          costRent = params.rent;
-          costEquip = (params.systemFee || 0) + (revenue * (params.brandFeeRate || 0));
-          costMisc = params.misc;
+          revenue = monthlyCups * EXCEL_CONSTANTS.modelB.price;
+          costMaterials = revenue * EXCEL_CONSTANTS.modelB.materialRate;
+          costLabor = EXCEL_CONSTANTS.modelB.labor;
+          costRent = EXCEL_CONSTANTS.modelB.rent; // 机器租金 450
+          costMisc = EXCEL_CONSTANTS.modelB.misc;
+      }
+      // Model C: 自营奶茶店 (Price 6, High Cost)
+      else if (modelId === 'C') {
+          const actualCups = Math.min(inputCups, EXCEL_CONSTANTS.modelC.cap);
+          const monthlyCups = actualCups * daysPerMonth;
+
+          revenue = monthlyCups * EXCEL_CONSTANTS.modelC.price; // 均价 6
+          costMaterials = revenue * EXCEL_CONSTANTS.modelC.materialRate;
+          costLabor = EXCEL_CONSTANTS.modelC.labor; // 9900
+          costRent = EXCEL_CONSTANTS.modelC.rent;   // 2000
+          costMisc = EXCEL_CONSTANTS.modelC.utilities + EXCEL_CONSTANTS.modelC.misc; // 1500
+      }
+      // Model D: ONESIP LITE (Policy Logic)
+      else if (modelId === 'D') {
+          // Onesip 理论上无硬性客流上限，或上限很高
+          const monthlyCups = inputCups * daysPerMonth;
+          revenue = monthlyCups * EXCEL_CONSTANTS.modelD.price;
+
+          // 核心逻辑：加盟商净拿 1.5 欧元/杯
+          const franchiseeProfit = monthlyCups * EXCEL_CONSTANTS.modelD.profitPerCup;
+          
+          // 倒推品牌服务费/供应链成本 (用于饼图显示支出)
+          const totalBrandCost = revenue - franchiseeProfit;
+          
+          costMaterials = 0; // 政策显示无额外原料费
+          costLabor = 0;     // 政策显示无额外人工费
+          costRent = 0;
+          costEquip = totalBrandCost; // 归类为品牌服务与供应链支出
       }
 
       const totalCost = costMaterials + costLabor + costRent + costEquip + costMisc;
