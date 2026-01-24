@@ -40,7 +40,7 @@ const defaultCalculatorParams: CalculatorParams = {
     cogsRate: 0.28,      // Competitive supply chain
     rent: 0,             // Existing space
     systemFee: 899,      // Monthly SaaS/Machine Fee
-    brandFeeRate: 0.07,  // Revenue Share
+    brandFeeRate: 0.05,  // Revenue Share (Updated to 5%)
     misc: 100,
     laborLevels: [
       { maxCups: 30, cost: 0 },    // Idle staff handles it
@@ -123,7 +123,7 @@ const defaultContent: SiteContent = {
                 t("1. 保持 ONESIP 品牌形象，售价统一", "1. Maintain brand image and unified pricing"),
                 t("2. 签署保密协议和竞业协议", "2. Sign NDA and Non-Compete Agreement"),
                 t("3. 支付机器系统服务费 (€899/月)", "3. Pay machine system service fee (€899/mo)"),
-                t("4. 支付 7% 品牌管理费 (利益绑定)", "4. Pay 7% brand management fee"),
+                t("4. 支付 5% 品牌管理费 (利益绑定)", "4. Pay 5% brand management fee"),
                 t("5. 保证员工接受定期培训", "5. Ensure staff receive regular training")
             ]
         },
